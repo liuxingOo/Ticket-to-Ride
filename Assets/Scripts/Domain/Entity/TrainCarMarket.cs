@@ -1,0 +1,162 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace TicketToRide.Domain
+{
+    public class TrainCarMarket
+    {
+        private readonly TrainCarDeck _deck;
+        private readonly List<TrainCarCard> _visibleCards;
+
+        public const int DefaultVisibleCardCount = 5;
+
+        public int MaxVisibleCards { get; }
+        public IReadOnlyList<TrainCarCard> VisibleCards => _visibleCards.AsReadOnly();
+        public int VisibleCount => _visibleCards.Count;
+
+        public TrainCarMarket(TrainCarDeck deck, int maxVisibleCards = DefaultVisibleCardCount)
+        {
+            if (deck == null)
+            {
+                throw new ArgumentNullException(nameof(deck), "Market needs a deck source.");
+            }
+
+            if (maxVisibleCards <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxVisibleCards), "Market must expose at least one visible card.");
+            }
+
+            _deck = deck;
+            _visibleCards = new List<TrainCarCard>();
+            MaxVisibleCards = maxVisibleCards;
+            RefillVisibleCards();
+        }
+
+        public void RefillVisibleCards()
+        {
+            while (_visibleCards.Count < MaxVisibleCards && !_deck.IsEmpty)
+            {
+                _visibleCards.Add(_deck.DrawOne());
+            }
+        }
+
+        public void ResetMarket()
+        {
+            if (_visibleCards.Count == 0)
+            {
+                RefillVisibleCards();
+                return;
+            }
+
+            _deck.DiscardCards(_visibleCards);
+            _visibleCards.Clear();
+            RefillVisibleCards();
+        }
+
+        public TrainCarCard TakeTopDeckCard()
+        {
+            if (_deck.IsEmpty)
+            {
+                _deck.RecycleDiscardPile();
+            }
+
+            if (_deck.IsEmpty)
+            {
+                throw new InvalidOperationException("Cannot draw from the top of the deck because both deck and discard pile are empty.");
+            }
+
+            return _deck.DrawOne();
+        }
+
+        public List<TrainCarCard> TakeVisibleCards(IEnumerable<TrainCarCard> cardsToTake)
+        {
+            if (cardsToTake == null)
+            {
+                throw new ArgumentNullException(nameof(cardsToTake), "Cards to take cannot be null.");
+            }
+
+            var selected = cardsToTake.ToList();
+            if (selected.Count == 0)
+            {
+                return new List<TrainCarCard>();
+            }
+
+            if (selected.Count > 2)
+            {
+                throw new InvalidOperationException("A player can only take up to two cards in one train-card action.");
+            }
+
+            if (selected.Any(card => card == null))
+            {
+                throw new ArgumentException("A selected card cannot be null.", nameof(cardsToTake));
+            }
+
+            if (selected.Any(card => !_visibleCards.Contains(card)))
+            {
+                throw new InvalidOperationException("One or more selected cards are not currently visible in the market.");
+            }
+
+            if (selected.Count > 1 && selected.Any(card => card.IsLocomotive))
+            {
+                throw new InvalidOperationException("If you take a locomotive from the market, you can only take that single locomotive and no second card.");
+            }
+
+            var taken = new List<TrainCarCard>();
+            foreach (var card in selected)
+            {
+                var index = _visibleCards.FindIndex(visible => visible.Equals(card));
+                if (index < 0)
+                {
+                    throw new InvalidOperationException("Selected market card is no longer visible.");
+                }
+
+                var removed = _visibleCards[index];
+                _visibleCards.RemoveAt(index);
+                taken.Add(removed);
+            }
+
+            RefillVisibleCards();
+
+            if (CountVisibleLocomotives() >= 3)
+            {
+                ResetMarket();
+            }
+
+            return taken;
+        }
+
+        public List<TrainCarCard> TakeTwoCardsFromMarketOrDeck(IEnumerable<TrainCarCard> visibleCardsToTake, bool takeTopDeckCard)
+        {
+            var taken = new List<TrainCarCard>();
+
+            if (visibleCardsToTake != null)
+            {
+                taken.AddRange(TakeVisibleCards(visibleCardsToTake));
+            }
+
+            if (takeTopDeckCard)
+            {
+                var drawn = TakeTopDeckCard();
+                taken.Add(drawn);
+            }
+
+            if (taken.Count > 2)
+            {
+                throw new InvalidOperationException("The player may only take a maximum of two cards in a single train-card acquisition action.");
+            }
+
+            if (taken.Count == 2 && taken.Any(card => card.IsLocomotive && taken.Count > 1))
+            {
+                throw new InvalidOperationException("A locomotive taken from the market cannot be combined with a second card by the same acquisition action.");
+            }
+
+            return taken;
+        }
+
+        public int CountVisibleLocomotives()
+        {
+            return _visibleCards.Count(card => card != null && card.IsLocomotive);
+        }
+    }
+}
