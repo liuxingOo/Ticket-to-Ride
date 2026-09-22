@@ -9,11 +9,12 @@ namespace TicketToRide.Domain
         public List<Player> Players { get; }
         public TrainCarDeck TrainCarDeck { get; }
         public TrainCarMarket TrainCarMarket { get; }
+        public DestinationTicketDeck DestinationTicketDeck { get; }
         public Queue<Player> TurnOrder { get; }
         public Player CurrentPlayer => TurnOrder.Peek();
         public bool IsGameOver { get; private set; }
 
-        public GameState(IEnumerable<Player> players, TrainCarDeck trainCarDeck, TrainCarMarket trainCarMarket = null)
+        public GameState(IEnumerable<Player> players, TrainCarDeck trainCarDeck, TrainCarMarket trainCarMarket = null, DestinationTicketDeck destinationTicketDeck = null)
         {
             if (players == null)
             {
@@ -34,6 +35,7 @@ namespace TicketToRide.Domain
             Players = playerList;
             TrainCarDeck = trainCarDeck;
             TrainCarMarket = trainCarMarket ?? new TrainCarMarket(trainCarDeck);
+            DestinationTicketDeck = destinationTicketDeck ?? global::TicketToRide.Domain.DestinationTicketDeck.CreateStandardDeck();
             TurnOrder = new Queue<Player>(playerList);
         }
 

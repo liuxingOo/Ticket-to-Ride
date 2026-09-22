@@ -12,6 +12,7 @@ namespace TicketToRide.Domain
         public int TrainCarsRemaining { get; private set; }
         public int Score { get; private set; }
         public List<Route> ClaimedRoutes { get; }
+        public List<DestinationTicket> DestinationTickets { get; }
 
         public Player(string id, string name, int startingTrainCars = 45)
         {
@@ -34,7 +35,31 @@ namespace TicketToRide.Domain
             Name = name;
             Hand = new PlayerHand();
             ClaimedRoutes = new List<Route>();
+            DestinationTickets = new List<DestinationTicket>();
             TrainCarsRemaining = startingTrainCars;
+        }
+
+        public void AddDestinationTickets(IEnumerable<DestinationTicket> tickets)
+        {
+            if (tickets == null)
+            {
+                throw new ArgumentNullException(nameof(tickets));
+            }
+
+            foreach (var ticket in tickets)
+            {
+                if (ticket == null)
+                {
+                    throw new ArgumentException("Destination tickets cannot contain null.", nameof(tickets));
+                }
+
+                DestinationTickets.Add(ticket);
+            }
+        }
+
+        public int GetDestinationTicketScore()
+        {
+            return DestinationTickets.Sum(ticket => ticket.IsCompleted(ClaimedRoutes) ? ticket.Points : -ticket.Points);
         }
 
         public bool CanClaimRoute(Route route, IEnumerable<TrainCarCard> playedCards)
@@ -98,9 +123,30 @@ namespace TicketToRide.Domain
             route.ClaimBy(Id);
             ClaimedRoutes.Add(route);
             TrainCarsRemaining -= route.Length;
-            Score += route.Length;
+            Score += GetRouteScore(route.Length);
 
             return true;
+        }
+
+        private static int GetRouteScore(int routeLength)
+        {
+            switch (routeLength)
+            {
+                case 1:
+                    return 1;
+                case 2:
+                    return 2;
+                case 3:
+                    return 4;
+                case 4:
+                    return 7;
+                case 5:
+                    return 10;
+                case 6:
+                    return 15;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(routeLength));
+            }
         }
     }
 }

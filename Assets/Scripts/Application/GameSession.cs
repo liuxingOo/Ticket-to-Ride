@@ -11,14 +11,14 @@ namespace TicketToRide.Application
         public TurnManager TurnManager { get; }
         public RouteRuleService RuleService { get; }
 
-        public GameSession(IEnumerable<Player> players, TrainCarDeck trainCarDeck, TrainCarMarket trainCarMarket = null)
+        public GameSession(IEnumerable<Player> players, TrainCarDeck trainCarDeck, TrainCarMarket trainCarMarket = null, DestinationTicketDeck destinationTicketDeck = null)
         {
             if (players == null)
             {
                 throw new ArgumentNullException(nameof(players));
             }
 
-            GameState = new GameState(players, trainCarDeck ?? throw new ArgumentNullException(nameof(trainCarDeck)), trainCarMarket);
+            GameState = new GameState(players, trainCarDeck ?? throw new ArgumentNullException(nameof(trainCarDeck)), trainCarMarket, destinationTicketDeck);
             TurnManager = new TurnManager(GameState);
             RuleService = new RouteRuleService();
         }
@@ -27,12 +27,14 @@ namespace TicketToRide.Application
         {
             var deck = TrainCarDeck.CreateStandardDeck();
             var market = new TrainCarMarket(deck);
+            var destinationTicketDeck = DestinationTicketDeck.CreateStandardDeck();
             var playerOne = new Player("player_1", "Alice");
 
             playerOne.Hand.AddCards(deck.DrawMany(4));
+            playerOne.AddDestinationTickets(destinationTicketDeck.DrawMany(3));
 
             var players = new List<Player> { playerOne };
-            return new GameSession(players, deck, market);
+            return new GameSession(players, deck, market, destinationTicketDeck);
         }
     }
 }

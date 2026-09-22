@@ -15,7 +15,7 @@ namespace TicketToRide.Domain
         Locomotive
     }
 
-    public class TrainCarCard : IEquatable<TrainCarCard>
+    public class TrainCarCard
     {
         public TrainCarColor Color { get; }
         public bool IsLocomotive => Color == TrainCarColor.Locomotive;
@@ -40,24 +40,5 @@ namespace TicketToRide.Domain
             return IsLocomotive ? "Locomotive" : Color.ToString();
         }
 
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as TrainCarCard);
-        }
-
-        public bool Equals(TrainCarCard other)
-        {
-            if (other is null)
-            {
-                return false;
-            }
-
-            return Color == other.Color;
-        }
-
-        public override int GetHashCode()
-        {
-            return Color.GetHashCode();
-        }
     }
 }

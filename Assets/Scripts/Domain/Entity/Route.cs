@@ -61,12 +61,14 @@ namespace TicketToRide.Domain
                 return false;
             }
 
+            var nonLocomotiveCards = cardList.Where(card => !card.IsLocomotive).ToList();
+
             if (Color == null)
             {
-                return true;
+                return nonLocomotiveCards.Count == 0 || nonLocomotiveCards.All(card => card.Color == nonLocomotiveCards[0].Color);
             }
 
-            return cardList.All(card => card.IsLocomotive || card.Color == Color.Value);
+            return nonLocomotiveCards.All(card => card.Color == Color.Value);
         }
 
         public void ClaimBy(string playerId)

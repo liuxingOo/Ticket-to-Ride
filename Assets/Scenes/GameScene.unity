@@ -263,6 +263,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 25127006}
+  - {fileID: 882434426}
   - {fileID: 907807642}
   - {fileID: 1273697900}
   - {fileID: 2069467559}
@@ -686,7 +687,7 @@ MonoBehaviour:
     sprite: {fileID: -327961852, guid: 4bcdbc1832d2da740a2694414c0566c1, type: 3}
   - color: 1
     sprite: {fileID: 1079946811, guid: 4bcdbc1832d2da740a2694414c0566c1, type: 3}
-  - color: 7
+  - color: 6
     sprite: {fileID: 914111059, guid: 4bcdbc1832d2da740a2694414c0566c1, type: 3}
   - color: 0
     sprite: {fileID: -594834775, guid: 4bcdbc1832d2da740a2694414c0566c1, type: 3}
@@ -1048,7 +1049,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 907807642}
+  m_Father: {fileID: 305430104}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -1082,8 +1083,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 882434426}
+  m_Children: []
   m_Father: {fileID: 305430104}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -1321,7 +1321,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TicketToRide.Presentation.MapGenerator
   routePrefab: {fileID: 6799262919138736331, guid: b8b11ffc73ab63443a7111845319cd61, type: 3}
-  routeParent: {fileID: 768107333}
+  routeParent: {fileID: 0}
   routeVisualData:
   - routeId: route_1
     startPosition: {x: -300, y: 0}

@@ -14,13 +14,16 @@ namespace TicketToRide.Presentation
 
         private void Start()
         {
-            Debug.Log($"[MapGenerator] Start 执行。预制体为空: {routePrefab == null}，父对象为空: {routeParent == null}，路线数量: {routeVisualData.Count}");
+            if (routePrefab == null || routeParent == null || routeVisualData.Count == 0)
+            {
+                return;
+            }
+
             GenerateRoutes();
         }
 
         public void GenerateRoutes()
         {
-            Debug.Log("[MapGenerator] GenerateRoutes 开始执行。");
             ClearRoutes();
 
             if (routePrefab == null)
@@ -44,7 +47,6 @@ namespace TicketToRide.Presentation
             foreach (var data in routeVisualData)
             {
                 var routeObject = Instantiate(routePrefab, routeParent);
-                Debug.Log($"[MapGenerator] 已生成实例: {routeObject.name}，路线: {data.routeId}");
                 var visual = routeObject.GetComponent<RouteVisual>();
 
                 if (visual == null)
