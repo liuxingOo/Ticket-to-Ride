@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using TicketToRide.Domain;
 
@@ -30,28 +31,31 @@ namespace TicketToRide.Presentation
                 Destroy(child.gameObject);
             }
 
-            var cards = player.Hand.GetCards();
-            for (int i = 0; i < cards.Count; i++)
-            {
-                var card = cards[i];
-                if (card == null)
-                {
-                    continue;
-                }
+            var groupedCards = player.Hand.GetCards()
+                .Where(card => card != null)
+                .GroupBy(card => card.Color)
+                .OrderBy(group => (int)group.Key);
 
+            var colorGroups = groupedCards.ToList();
+            for (int slotIndex = 0; slotIndex < colorGroups.Count; slotIndex++)
+            {
+                var group = colorGroups[slotIndex];
                 var cardView = Instantiate(cardPrefab, handRoot);
                 if (cardView == null)
                 {
                     continue;
                 }
 
-                var sprite = spriteLibrary != null ? spriteLibrary.GetSprite(card.Color) : null;
-                cardView.Initialize(card, sprite);
+                var sprite = spriteLibrary != null ? spriteLibrary.GetSprite(group.Key) : null;
+                cardView.Initialize(group.First(), sprite);
+                cardView.SetCount(group.Count());
 
                 var rect = cardView.transform as RectTransform;
                 if (rect != null)
                 {
-                    rect.anchoredPosition = new Vector2(i * cardSpacing.x, i * cardSpacing.y);
+                    // 以容器中心为基准向两侧对称排开，保证任意数量手牌都居中。
+                    float centeredIndex = slotIndex - (colorGroups.Count - 1) * 0.5f;
+                    rect.anchoredPosition = new Vector2(centeredIndex * cardSpacing.x, centeredIndex * cardSpacing.y);
                 }
             }
         }

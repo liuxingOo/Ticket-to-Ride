@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TicketToRide.Application;
 using TicketToRide.Domain;
-using System.Linq;
 
 namespace TicketToRide.Presentation
 {
@@ -20,6 +19,25 @@ namespace TicketToRide.Presentation
         {
             _gameSession = GameSession.CreateDemoSession();
 
+            // Inspector 没有手动拖线时，自动在场景中查找，保证当前开发阶段直接能运行。
+            if (trainCardMarketView == null)
+            {
+                trainCardMarketView = FindFirstObjectByType<TrainCardMarketView>();
+                if (trainCardMarketView != null)
+                {
+                    Debug.LogWarning("[GameSessionView] trainCardMarketView 未在 Inspector 指定，已自动绑定场景中的市场视图。建议之后手动拖线。");
+                }
+            }
+
+            if (trainCardDeckView == null)
+            {
+                trainCardDeckView = FindFirstObjectByType<TrainCardDeckView>();
+                if (trainCardDeckView != null)
+                {
+                    Debug.LogWarning("[GameSessionView] trainCardDeckView 未在 Inspector 指定，已自动绑定场景中的牌堆视图。建议之后手动拖线。");
+                }
+            }
+
             if (drawTrainCardButton != null)
             {
                 drawTrainCardButton.onClick.AddListener(OnDrawTrainCardClicked);
@@ -30,9 +48,15 @@ namespace TicketToRide.Presentation
                 trainCardDeckView.OnDeckClicked += OnDeckClicked;
             }
 
+            if (deckCountView != null)
+            {
+                deckCountView.OnDeckClicked += OnDeckClicked;
+            }
+
             if (trainCardMarketView != null)
             {
                 trainCardMarketView.Bind(_gameSession);
+                trainCardMarketView.CardsAcquired += OnCardsAcquired;
             }
 
             RefreshViews();
@@ -49,6 +73,16 @@ namespace TicketToRide.Presentation
             {
                 trainCardDeckView.OnDeckClicked -= OnDeckClicked;
             }
+
+            if (deckCountView != null)
+            {
+                deckCountView.OnDeckClicked -= OnDeckClicked;
+            }
+
+            if (trainCardMarketView != null)
+            {
+                trainCardMarketView.CardsAcquired -= OnCardsAcquired;
+            }
         }
 
         public void OnDrawTrainCardClicked()
@@ -63,7 +97,7 @@ namespace TicketToRide.Presentation
             {
                 var card = _gameSession.TurnManager.DrawTrainCard();
                 Debug.Log($"[GameSessionView] 当前玩家抽到: {card}");
-                RefreshViews();
+                RefreshPlayerInfo();
             }
             catch (System.InvalidOperationException exception)
             {
@@ -80,13 +114,9 @@ namespace TicketToRide.Presentation
 
             try
             {
-                var taken = _gameSession.TurnManager.AcquireTrainCards(new System.Collections.Generic.List<TrainCarCard>(), 1);
-                Debug.Log($"[GameSessionView] 点击牌堆抽到: {string.Join(", ", taken.Select(c => c.ToString()))}");
-                RefreshViews();
-                if (trainCardMarketView != null)
-                {
-                    trainCardMarketView.Refresh();
-                }
+                var card = _gameSession.TurnManager.DrawTrainCard();
+                Debug.Log($"[GameSessionView] 点击牌堆抽到: {card}");
+                RefreshPlayerInfo();
             }
             catch (System.Exception exception)
             {
@@ -94,8 +124,28 @@ namespace TicketToRide.Presentation
             }
         }
 
+        private void OnCardsAcquired()
+        {
+            RefreshPlayerInfo();
+        }
+
         private void RefreshViews()
         {
+            RefreshPlayerInfo();
+
+            if (trainCardMarketView != null)
+            {
+                trainCardMarketView.Refresh();
+            }
+        }
+
+        private void RefreshPlayerInfo()
+        {
+            if (_gameSession == null)
+            {
+                return;
+            }
+
             if (deckCountView != null)
             {
                 deckCountView.Refresh(_gameSession.GameState.TrainCarDeck);
@@ -112,11 +162,6 @@ namespace TicketToRide.Presentation
             else
             {
                 Debug.LogWarning("[GameSessionView] 没有绑定 PlayerHandView。");
-            }
-
-            if (trainCardMarketView != null)
-            {
-                trainCardMarketView.Refresh();
             }
         }
     }

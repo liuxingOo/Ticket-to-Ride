@@ -102,21 +102,41 @@ namespace TicketToRide.Domain
                 throw new InvalidOperationException("If you take a locomotive from the market, you can only take that single locomotive and no second card.");
             }
 
-            var taken = new List<TrainCarCard>();
-            foreach (var card in selected)
-            {
-                var index = _visibleCards.FindIndex(visible => visible.Equals(card));
-                if (index < 0)
-                {
-                    throw new InvalidOperationException("Selected market card is no longer visible.");
-                }
+            // 先把选中牌解析成“槽位编号”，槽位是市场位置的唯一事实来源。
+            var emptiedSlots = selected
+                .Select(card => _visibleCards.FindIndex(visible => visible.Equals(card)))
+                .ToList();
 
-                var removed = _visibleCards[index];
-                _visibleCards.RemoveAt(index);
-                taken.Add(removed);
+            if (emptiedSlots.Any(slot => slot < 0))
+            {
+                throw new InvalidOperationException("Selected market card is no longer visible.");
             }
 
-            RefillVisibleCards();
+            var taken = new List<TrainCarCard>();
+
+            // 从后往前删，避免删除前面的牌导致后面槽位编号整体前移。
+            foreach (var slot in emptiedSlots.OrderByDescending(slot => slot))
+            {
+                taken.Add(_visibleCards[slot]);
+                _visibleCards.RemoveAt(slot);
+            }
+
+            if (_deck.IsEmpty)
+            {
+                _deck.RecycleDiscardPile();
+            }
+
+            // 新牌插回被清空的原槽位，其它牌保持原位不动。
+            foreach (var slot in emptiedSlots.OrderBy(slot => slot))
+            {
+                if (_deck.IsEmpty)
+                {
+                    break;
+                }
+
+                int insertIndex = Math.Min(slot, _visibleCards.Count);
+                _visibleCards.Insert(insertIndex, _deck.DrawOne());
+            }
 
             if (CountVisibleLocomotives() >= 3)
             {

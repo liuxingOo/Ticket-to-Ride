@@ -20,6 +20,23 @@ namespace TicketToRide.Domain
             return card;
         }
 
+        public TrainCarCard TakeOneMarketCard(TrainCarCard card)
+        {
+            if (card == null)
+            {
+                throw new ArgumentNullException(nameof(card), "Cannot take a null market card.");
+            }
+
+            var taken = _gameState.TrainCarMarket.TakeVisibleCards(new List<TrainCarCard> { card });
+            if (taken.Count == 0)
+            {
+                throw new InvalidOperationException("The selected market card could not be taken.");
+            }
+
+            _gameState.CurrentPlayer.Hand.AddCards(taken);
+            return taken[0];
+        }
+
         public List<TrainCarCard> AcquireTrainCards(IEnumerable<TrainCarCard> marketCards, int deckDrawCount)
         {
             if (marketCards == null)

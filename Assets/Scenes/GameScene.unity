@@ -271,7 +271,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 980, y: 150}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &305430105
@@ -291,6 +291,7 @@ MonoBehaviour:
   spriteLibrary: {fileID: 589930759}
   drawDeckButton: {fileID: 0}
   resetMarketButton: {fileID: 0}
+  cardSpacing: {x: 0, y: -130}
 --- !u!1 &319955609
 GameObject:
   m_ObjectHideFlags: 0
@@ -443,7 +444,9 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 554822181}
+  - {fileID: 768107333}
   m_Father: {fileID: 663432532}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -626,6 +629,42 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &554822180
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 554822181}
+  m_Layer: 0
+  m_Name: Cities
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &554822181
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 554822180}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1156464388}
+  m_Father: {fileID: 469661843}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &589930757
 GameObject:
   m_ObjectHideFlags: 0
@@ -852,7 +891,7 @@ MonoBehaviour:
   m_UiScaleMode: 0
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 2560, y: 1440}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
@@ -899,7 +938,6 @@ RectTransform:
   - {fileID: 469661843}
   - {fileID: 1962998154}
   - {fileID: 411317964}
-  - {fileID: 768107333}
   - {fileID: 922391352}
   - {fileID: 1632945730}
   - {fileID: 589930758}
@@ -1014,12 +1052,12 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 663432532}
+  m_Father: {fileID: 469661843}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &882434425
 GameObject:
@@ -1141,7 +1179,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TicketToRide.Presentation.DeckCountView
   deckImage: {fileID: 744591584}
-  level10Sprite: {fileID: -6084691980193236272, guid: 3bbf53b254bd8884f8bf446d3561ff2a, type: 3}
+  level10Sprite: {fileID: 21300000, guid: 3bbf53b254bd8884f8bf446d3561ff2a, type: 3}
   level20Sprite: {fileID: 2934844687850041745, guid: 80779592b5ba01145ab7ec6292705a8e, type: 3}
   level30Sprite: {fileID: -1924387266540841155, guid: fadf3a7c480dd2b4bb0cf44f8849ea41, type: 3}
   level40Sprite: {fileID: -5575287543287790601, guid: 11a915285989ad94d9e35bb141cc0308, type: 3}
@@ -1184,7 +1222,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -291, y: -617}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1071127199
@@ -1200,9 +1238,100 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TicketToRide.Presentation.PlayerHandView
   handRoot: {fileID: 1071127198}
-  cardPrefab: {fileID: 1409350042780025237, guid: adf6da0451a4f3a428913c1fba7a8625, type: 3}
+  cardPrefab: {fileID: 1409350042780025237, guid: 0ecd6a0d8cb0e1e449c6c5464d90bdef, type: 3}
   spriteLibrary: {fileID: 589930759}
-  cardSpacing: {x: 110, y: 0}
+  cardSpacing: {x: 130, y: 0}
+--- !u!1 &1156464387
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1156464388}
+  - component: {fileID: 1156464389}
+  - component: {fileID: 1156464391}
+  - component: {fileID: 1156464390}
+  m_Layer: 5
+  m_Name: city_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1156464388
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1156464387}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 554822181}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 44, y: 44}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1156464389
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1156464387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad487e6e2d1a4d97ae4b65f8332539d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cityId: city_1
+  pixelPosition: {x: 872, y: 562.5}
+  chineseName: 
+--- !u!114 &1156464390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1156464387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1156464391
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1156464387}
+  m_CullTransparentMesh: 1
 --- !u!1 &1273697899
 GameObject:
   m_ObjectHideFlags: 0
@@ -1321,14 +1450,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TicketToRide.Presentation.MapGenerator
   routePrefab: {fileID: 6799262919138736331, guid: b8b11ffc73ab63443a7111845319cd61, type: 3}
-  routeParent: {fileID: 0}
-  routeVisualData:
-  - routeId: route_1
-    startPosition: {x: -300, y: 0}
-    endPosition: {x: 300, y: 0}
-    routeColor: 0
-    length: 2
-    isClaimed: 0
+  mapRect: {fileID: 469661843}
+  routeParent: {fileID: 768107333}
+  routeVisualData: []
+  cityPrefab: {fileID: 0}
+  cityParent: {fileID: 554822181}
 --- !u!1 &1758292853
 GameObject:
   m_ObjectHideFlags: 0

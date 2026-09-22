@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TicketToRide.Application;
@@ -14,10 +14,38 @@ namespace TicketToRide.Presentation
         [SerializeField] private TrainCarCardSpriteLibrary spriteLibrary;
         [SerializeField] private Button drawDeckButton;
         [SerializeField] private Button resetMarketButton;
+        [SerializeField] private Vector2 cardSpacing = new Vector2(0f, -190f);
 
         private GameSession _session;
         private readonly List<TrainCarCardView> _marketViews = new List<TrainCarCardView>();
-        private readonly List<TrainCarCard> _selectedMarketCards = new List<TrainCarCard>();
+
+        public event Action CardsAcquired;
+
+        private void Awake()
+        {
+            if (drawDeckButton != null)
+            {
+                drawDeckButton.onClick.AddListener(OnDrawDeckClicked);
+            }
+
+            if (resetMarketButton != null)
+            {
+                resetMarketButton.onClick.AddListener(OnResetMarketClicked);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (drawDeckButton != null)
+            {
+                drawDeckButton.onClick.RemoveListener(OnDrawDeckClicked);
+            }
+
+            if (resetMarketButton != null)
+            {
+                resetMarketButton.onClick.RemoveListener(OnResetMarketClicked);
+            }
+        }
 
         public void Bind(GameSession session)
         {
@@ -38,6 +66,12 @@ namespace TicketToRide.Presentation
                 return;
             }
 
+            if (marketCardPrefab == null)
+            {
+                Debug.LogError("[TrainCardMarketView] 没有绑定 marketCardPrefab。 ");
+                return;
+            }
+
             foreach (var view in _marketViews)
             {
                 if (view != null)
@@ -47,7 +81,6 @@ namespace TicketToRide.Presentation
             }
 
             _marketViews.Clear();
-            _selectedMarketCards.Clear();
 
             var visibleCards = _session.GameState.TrainCarMarket.VisibleCards;
             for (int i = 0; i < visibleCards.Count; i++)
@@ -68,18 +101,13 @@ namespace TicketToRide.Presentation
                 view.Initialize(card, sprite);
                 view.OnCardClicked += OnMarketCardClicked;
                 _marketViews.Add(view);
-            }
 
-            if (drawDeckButton != null)
-            {
-                drawDeckButton.onClick.RemoveAllListeners();
-                drawDeckButton.onClick.AddListener(OnDrawDeckClicked);
-            }
-
-            if (resetMarketButton != null)
-            {
-                resetMarketButton.onClick.RemoveAllListeners();
-                resetMarketButton.onClick.AddListener(OnResetMarketClicked);
+                var rect = view.transform as RectTransform;
+                if (rect != null)
+                {
+                    float centeredIndex = i - (visibleCards.Count - 1) * 0.5f;
+                    rect.anchoredPosition = new Vector2(centeredIndex * cardSpacing.x, centeredIndex * cardSpacing.y);
+                }
             }
         }
 
@@ -90,31 +118,16 @@ namespace TicketToRide.Presentation
                 return;
             }
 
-            if (_selectedMarketCards.Contains(card))
+            try
             {
-                _selectedMarketCards.Remove(card);
-                Debug.Log($"[TrainCardMarketView] 取消选择市场牌: {card}");
-                return;
+                _session.TurnManager.TakeOneMarketCard(card);
+                Debug.Log($"[TrainCardMarketView] 从市场获得: {card}");
+                CardsAcquired?.Invoke();
+                Refresh();
             }
-
-            if (_selectedMarketCards.Count >= 2)
+            catch (Exception exception)
             {
-                Debug.LogWarning("[TrainCardMarketView] 一次最多拿两张车票，且不能和市场机车叠加。 ");
-                return;
-            }
-
-            if (card.IsLocomotive && _selectedMarketCards.Count > 0)
-            {
-                Debug.LogWarning("[TrainCardMarketView] 市场彩色车头车票只能单独拿一张，不能和第二张搭配。 ");
-                return;
-            }
-
-            _selectedMarketCards.Add(card);
-            Debug.Log($"[TrainCardMarketView] 选择市场牌: {card}");
-
-            if (_selectedMarketCards.Count == 2)
-            {
-                TryTakeSelectedMarketCards();
+                Debug.LogWarning($"[TrainCardMarketView] 拿取市场车票失败: {exception.Message}");
             }
         }
 
@@ -125,27 +138,16 @@ namespace TicketToRide.Presentation
                 return;
             }
 
-            int deckDrawCount = 1;
-            var selectedMarketCards = _selectedMarketCards.ToList();
-
-            if (selectedMarketCards.Count == 0)
+            try
             {
-                var taken = _session.TurnManager.AcquireTrainCards(new List<TrainCarCard>(), 1);
-                Debug.Log($"[TrainCardMarketView] 从牌堆顶抽到: {string.Join(", ", taken.Select(c => c.ToString()))}");
-                Refresh();
-                return;
+                var card = _session.TurnManager.DrawTrainCard();
+                Debug.Log($"[TrainCardMarketView] 从牌堆顶摸到: {card}");
+                CardsAcquired?.Invoke();
             }
-
-            if (selectedMarketCards.Count == 1 && selectedMarketCards[0].IsLocomotive)
+            catch (Exception exception)
             {
-                Debug.LogWarning("[TrainCardMarketView] 你已经选了市场机车，不能再从牌堆顶额外拿一张；只能选择这一张。 ");
-                return;
+                Debug.LogWarning($"[TrainCardMarketView] 从牌堆摸牌失败: {exception.Message}");
             }
-
-            var result = _session.TurnManager.AcquireTrainCards(selectedMarketCards, deckDrawCount);
-            Debug.Log($"[TrainCardMarketView] 这次行动获得: {string.Join(", ", result.Select(c => c.ToString()))}");
-            _selectedMarketCards.Clear();
-            Refresh();
         }
 
         private void OnResetMarketClicked()
@@ -156,26 +158,6 @@ namespace TicketToRide.Presentation
             }
 
             _session.GameState.TrainCarMarket.ResetMarket();
-            Refresh();
-        }
-
-        private void TryTakeSelectedMarketCards()
-        {
-            if (_session == null || _selectedMarketCards.Count == 0)
-            {
-                return;
-            }
-
-            var selected = _selectedMarketCards.ToList();
-            if (selected.Count == 2 && selected.Any(card => card.IsLocomotive))
-            {
-                Debug.LogWarning("[TrainCardMarketView] 选中的市场彩色车头车票不能和第二张一起拿。 ");
-                return;
-            }
-
-            var result = _session.TurnManager.AcquireTrainCards(selected, 0);
-            Debug.Log($"[TrainCardMarketView] 从市场指定牌获得: {string.Join(", ", result.Select(c => c.ToString()))}");
-            _selectedMarketCards.Clear();
             Refresh();
         }
     }

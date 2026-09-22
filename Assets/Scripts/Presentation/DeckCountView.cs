@@ -1,12 +1,15 @@
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TicketToRide.Domain;
 
 namespace TicketToRide.Presentation
 {
-    public class DeckCountView : MonoBehaviour
+    public class DeckCountView : MonoBehaviour, IPointerClickHandler
     {
+        public event Action OnDeckClicked;
+
         [SerializeField] private Image deckImage;
         [SerializeField] private Sprite level10Sprite;
         [SerializeField] private Sprite level20Sprite;
@@ -52,6 +55,16 @@ namespace TicketToRide.Presentation
             }
 
             deckImage.enabled = remainingCount > 0 && deckImage.sprite != null;
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (deckImage != null && !deckImage.enabled)
+            {
+                return;
+            }
+
+            OnDeckClicked?.Invoke();
         }
 
         private Sprite GetSpriteForCount(int remainingCount)
