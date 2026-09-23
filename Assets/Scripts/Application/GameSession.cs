@@ -31,7 +31,8 @@ namespace TicketToRide.Application
             var playerOne = new Player("player_1", "Alice", TrainCarColor.Red);
 
             playerOne.Hand.AddCards(deck.DrawMany(4));
-            playerOne.AddDestinationTickets(destinationTicketDeck.DrawMany(3));
+
+            // 任务卡不再直接发到手里：开局由 DestinationDraftPanel 弹出 3 张，玩家留至少 2 张。
 
             var players = new List<Player> { playerOne };
             return new GameSession(players, deck, market, destinationTicketDeck);

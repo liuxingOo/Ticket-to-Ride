@@ -11,7 +11,10 @@ namespace TicketToRide.Domain
         public string EndCity { get; }
         public int Points { get; }
 
-        public DestinationTicket(string id, string startCity, string endCity, int points)
+        /// <summary>卡面图序号：destinations.png 10×3 网格中的位置（从左到右、从上到下 0-29）。</summary>
+        public int ArtIndex { get; }
+
+        public DestinationTicket(string id, string startCity, string endCity, int points, int artIndex = 0)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -37,6 +40,7 @@ namespace TicketToRide.Domain
             StartCity = startCity;
             EndCity = endCity;
             Points = points;
+            ArtIndex = artIndex;
         }
 
         public bool IsCompleted(IEnumerable<Route> claimedRoutes)

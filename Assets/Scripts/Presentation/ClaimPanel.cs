@@ -453,6 +453,18 @@ namespace TicketToRide.Presentation
 
         // —————————————— UI 辅助方法 ——————————————
 
+        /// <summary>供其它运行时面板（如 DestinationDraftPanel）复用的文字创建入口。</summary>
+        public static Text CreateLabelPublic(Transform parent, string name, int fontSize, TextAnchor anchor)
+        {
+            return CreateLabel(parent, name, fontSize, anchor);
+        }
+
+        /// <summary>供其它运行时面板（如 DestinationDraftPanel）复用的按钮创建入口。</summary>
+        public static Button CreateButtonPublic(Transform parent, string labelText, Color bgColor)
+        {
+            return CreateButton(parent, labelText, bgColor);
+        }
+
         private static Text CreateLabel(Transform parent, string name, int fontSize, TextAnchor anchor)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));

@@ -18,27 +18,29 @@ namespace TicketToRide.Domain
 
         public static DestinationTicketDeck CreateStandardDeck()
         {
+            // 第 4 个数字是卡面序号：destinations.png 10×3 网格的位置（从左到右、从上到下 0-29）。
+            // 城市名必须与场景 CityMarker.cityId 完全一致（Sault St. Marie 带句点、Saint Louis 全拼）。
             var tickets = new[]
             {
-                ("Los Angeles", "New York", 21), ("Duluth", "Houston", 8),
-                ("Sault Ste. Marie", "Nashville", 8), ("New York", "Atlanta", 6),
-                ("Portland", "Nashville", 17), ("Vancouver", "Montreal", 20),
-                ("Duluth", "El Paso", 10), ("Toronto", "Miami", 10),
-                ("Portland", "Phoenix", 11), ("Dallas", "New York", 11),
-                ("Calgary", "Salt Lake City", 7), ("Calgary", "Phoenix", 13),
-                ("Los Angeles", "Miami", 20), ("Winnipeg", "Little Rock", 11),
-                ("San Francisco", "Atlanta", 17), ("Kansas City", "Houston", 5),
-                ("Los Angeles", "Chicago", 16), ("Denver", "Pittsburgh", 11),
-                ("Chicago", "Santa Fe", 9), ("Vancouver", "Santa Fe", 13),
-                ("Boston", "Miami", 12), ("Chicago", "New Orleans", 7),
-                ("Montreal", "Atlanta", 9), ("Seattle", "Los Angeles", 9),
-                ("Sault Ste. Marie", "Oklahoma City", 9), ("Helena", "Los Angeles", 8),
-                ("Winnipeg", "Houston", 12), ("Denver", "El Paso", 4),
-                ("Seattle", "New York", 22), ("Montreal", "New Orleans", 13)
+                ("Los Angeles", "New York", 21, 14), ("Duluth", "Houston", 8, 9),
+                ("Sault St. Marie", "Nashville", 8, 21), ("New York", "Atlanta", 6, 17),
+                ("Portland", "Nashville", 17, 18), ("Vancouver", "Montreal", 20, 26),
+                ("Duluth", "El Paso", 10, 8), ("Toronto", "Miami", 10, 25),
+                ("Portland", "Phoenix", 11, 19), ("Dallas", "New York", 11, 5),
+                ("Calgary", "Salt Lake City", 7, 2), ("Calgary", "Phoenix", 13, 1),
+                ("Los Angeles", "Miami", 20, 13), ("Winnipeg", "Little Rock", 11, 29),
+                ("San Francisco", "Atlanta", 17, 20), ("Kansas City", "Houston", 5, 11),
+                ("Los Angeles", "Chicago", 16, 12), ("Denver", "Pittsburgh", 11, 7),
+                ("Chicago", "Santa Fe", 9, 4), ("Vancouver", "Santa Fe", 13, 27),
+                ("Boston", "Miami", 12, 0), ("Chicago", "New Orleans", 7, 3),
+                ("Montreal", "Atlanta", 9, 15), ("Seattle", "Los Angeles", 9, 23),
+                ("Sault St. Marie", "Oklahoma City", 9, 22), ("Helena", "Los Angeles", 8, 10),
+                ("Winnipeg", "Houston", 12, 28), ("Denver", "El Paso", 4, 6),
+                ("Seattle", "New York", 22, 24), ("Montreal", "New Orleans", 13, 16)
             };
 
             var deck = new DestinationTicketDeck(tickets.Select((ticket, index) =>
-                new DestinationTicket($"destination_{index + 1}", ticket.Item1, ticket.Item2, ticket.Item3)));
+                new DestinationTicket($"destination_{index + 1}", ticket.Item1, ticket.Item2, ticket.Item3, ticket.Item4)));
             deck.Shuffle();
             return deck;
         }
@@ -59,7 +61,25 @@ namespace TicketToRide.Domain
             return drawnTickets;
         }
 
-        private void Shuffle()
+        /// <summary>把不要的任务卡放回牌堆底（开局挑选、游戏中抽选都走这里）。</summary>
+        public void ReturnToBottom(IEnumerable<DestinationTicket> tickets)
+        {
+            if (tickets == null)
+            {
+                throw new ArgumentNullException(nameof(tickets));
+            }
+
+            foreach (var ticket in tickets)
+            {
+                if (ticket != null)
+                {
+                    _tickets.Enqueue(ticket);
+                }
+            }
+        }
+
+        /// <summary>洗牌（开局挑选完、游戏中抽选有弃卡时调用）。</summary>
+        public void Shuffle()
         {
             var tickets = _tickets.OrderBy(_ => Guid.NewGuid()).ToList();
             _tickets.Clear();

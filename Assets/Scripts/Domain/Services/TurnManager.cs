@@ -123,6 +123,31 @@ namespace TicketToRide.Domain
             }
         }
 
+        /// <summary>
+        /// 任务卡挑选结算：保留的加入当前玩家；只要有弃卡，就放回牌堆底并洗一次牌
+        /// （开局挑选完、游戏中抽选走同一个方法）。
+        /// </summary>
+        public void ChooseDestinationTickets(IReadOnlyCollection<DestinationTicket> kept, IReadOnlyCollection<DestinationTicket> discarded)
+        {
+            if (kept == null)
+            {
+                throw new ArgumentNullException(nameof(kept));
+            }
+
+            if (discarded == null)
+            {
+                throw new ArgumentNullException(nameof(discarded));
+            }
+
+            _gameState.CurrentPlayer.AddDestinationTickets(kept);
+
+            if (discarded.Count > 0)
+            {
+                _gameState.DestinationTicketDeck.ReturnToBottom(discarded);
+                _gameState.DestinationTicketDeck.Shuffle();
+            }
+        }
+
         public bool ClaimRoute(Route route, IEnumerable<TrainCarCard> playedCards)
         {
             if (route == null)
