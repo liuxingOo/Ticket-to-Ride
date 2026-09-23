@@ -9,7 +9,7 @@ namespace TicketToRide.Domain
         Yellow,
         Green,
         Blue,
-        Purple,
+        Pink,
         Black,
         White,
         Locomotive

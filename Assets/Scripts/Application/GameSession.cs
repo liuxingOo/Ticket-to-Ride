@@ -28,7 +28,7 @@ namespace TicketToRide.Application
             var deck = TrainCarDeck.CreateStandardDeck();
             var market = new TrainCarMarket(deck);
             var destinationTicketDeck = DestinationTicketDeck.CreateStandardDeck();
-            var playerOne = new Player("player_1", "Alice");
+            var playerOne = new Player("player_1", "Alice", TrainCarColor.Red);
 
             playerOne.Hand.AddCards(deck.DrawMany(4));
             playerOne.AddDestinationTickets(destinationTicketDeck.DrawMany(3));

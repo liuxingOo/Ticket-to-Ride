@@ -22,6 +22,14 @@ namespace TicketToRide.Presentation
         [SerializeField] private GameObject cityPrefab;
         [SerializeField] private Transform cityParent;
 
+        [Header("官方路线批量生成")]
+        [Tooltip("平行双线两条轨道中心线的间距（Map.png 像素单位）。" +
+                 "热区对不齐印刷双轨时调这个值，改完重新点“一键生成”（已有双线需先清空）。")]
+        [SerializeField] private float doubleRoutePixelGap = 20f;
+
+        /// <summary>平行双线路由之间的中心间距（像素），供外部读取。</summary>
+        public float DoubleRoutePixelGap => doubleRoutePixelGap;
+
         private void OnEnable()
         {
             AlignRouteLayer();
@@ -385,6 +393,81 @@ namespace TicketToRide.Presentation
             return marker;
         }
 
+        /// <summary>地图 RectTransform（批量摆点工具做射线投影用）。</summary>
+        public RectTransform MapLayer
+        {
+            get
+            {
+                if (mapRect == null)
+                {
+                    AlignRouteLayer();
+                }
+
+                return mapRect;
+            }
+        }
+
+        /// <summary>
+        /// 在指定 Map.png 像素位置创建城市；同名城市已存在则只更新位置。
+        /// 供批量摆点窗口逐城点击放置。
+        /// </summary>
+        public CityMarker CreateCityAt(string cityId, Vector2 pixel)
+        {
+            AlignCityLayer(autoCreate: true);
+
+            if (cityParent is not RectTransform)
+            {
+                Debug.LogError("[MapGenerator] City Parent 未就绪。");
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(cityId))
+            {
+                return null;
+            }
+
+            cityId = cityId.Trim();
+            var existing = FindCity(cityId);
+            if (existing != null)
+            {
+                existing.SetPixel(pixel);
+#if UNITY_EDITOR
+                UnityEditor.EditorUtility.SetDirty(existing);
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(existing.gameObject.scene);
+#endif
+                return existing;
+            }
+
+            GameObject prefab = cityPrefab != null ? cityPrefab : Resources.Load<GameObject>("Prefabs/CityMarker");
+
+            GameObject cityObject;
+            CityMarker marker;
+
+            if (prefab != null)
+            {
+                cityObject = Instantiate(prefab, cityParent);
+                marker = cityObject.GetComponent<CityMarker>();
+                if (marker == null)
+                {
+                    marker = cityObject.AddComponent<CityMarker>();
+                }
+            }
+            else
+            {
+                cityObject = new GameObject(cityId, typeof(RectTransform));
+                cityObject.transform.SetParent(cityParent, false);
+                marker = cityObject.AddComponent<CityMarker>();
+            }
+
+            marker.Initialize(cityId, pixel);
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(cityParent);
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(cityObject.scene);
+#endif
+            return marker;
+        }
+
         public void ClearCities()
         {
             if (cityParent == null)
@@ -457,7 +540,13 @@ namespace TicketToRide.Presentation
         /// 按两个城市创建一条路线，端点自动吸附到城市坐标。
         /// 平行双线会自动得到 _2、_3 后缀的唯一 id。
         /// </summary>
-        public RouteVisual CreateRouteBetweenCities(string startCityId, string endCityId, int length, TrainCarColor color)
+        public RouteVisual CreateRouteBetweenCities(
+            string startCityId,
+            string endCityId,
+            int length,
+            TrainCarColor color,
+            bool isGrey = false,
+            float sideOffsetPixels = 0f)
         {
             AlignRouteLayer();
             AlignCityLayer(autoCreate: true);
@@ -504,6 +593,10 @@ namespace TicketToRide.Presentation
             var routeObject = Instantiate(routePrefab, routeParent);
             routeObject.name = id;
 
+#if UNITY_EDITOR
+            UnityEditor.Undo.RegisterCreatedObjectUndo(routeObject, "按城市对创建路线");
+#endif
+
             var visual = routeObject.GetComponent<RouteVisual>();
             if (visual == null)
             {
@@ -512,6 +605,7 @@ namespace TicketToRide.Presentation
 
             visual.Initialize(data);
             visual.BindCities(startCityId, endCityId);
+            visual.SetAppearance(isGrey, sideOffsetPixels);
 
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(routeParent);
@@ -537,6 +631,214 @@ namespace TicketToRide.Presentation
                 }
             }
         }
+
+        // —————————————— 官方路线表批量生成 ——————————————
+
+        /// <summary>
+        /// 按美版官方路线表（78 个城市对 / 100 条轨道）批量生成路线。
+        /// 幂等：场景里已经存在的城市对自动跳过，只补缺的，可反复点。
+        /// </summary>
+        public OfficialRouteReport GenerateOfficialRoutes()
+        {
+            AlignRouteLayer();
+            AlignCityLayer(autoCreate: false);
+
+            var report = new OfficialRouteReport();
+
+            if (routePrefab == null || routeParent == null)
+            {
+                report.Notes.Add("Route Prefab 或 Route Parent 未就绪，未生成任何路线。");
+                return report;
+            }
+
+            float halfGap = doubleRoutePixelGap * 0.5f;
+
+            foreach (var def in OfficialUsRouteTable.All)
+            {
+                if (FindCity(def.City1) == null || FindCity(def.City2) == null)
+                {
+                    string missing = FindCity(def.City1) == null ? def.City1 : def.City2;
+                    if (!report.MissingCities.Contains(missing))
+                    {
+                        report.MissingCities.Add(missing);
+                    }
+                    continue;
+                }
+
+                var existing = FindRoutesBetweenCities(def.City1, def.City2);
+                int expected = def.TrackCount;
+
+                if (existing.Count >= expected)
+                {
+                    report.SkippedPairs++;
+                    continue;
+                }
+
+                if (!def.IsDouble)
+                {
+                    // 单线（彩色或灰色）。
+                    CreateRouteBetweenCities(
+                        def.City1, def.City2, def.Length,
+                        def.IsGrey ? TrainCarColor.Red : def.Color,
+                        def.IsGrey, 0f);
+                    report.CreatedTracks++;
+                    continue;
+                }
+
+                // 平行双线：逐轨补齐，左右各偏移半轨距，颜色按官方表分配。
+                for (int track = 0; track < 2; track++)
+                {
+                    float offset = track == 0 ? -halfGap : halfGap;
+
+                    // 若这一对已经有 1 条（部分补建），跳过已占用的偏移侧。
+                    if (existing.Count > 0)
+                    {
+                        bool sideTaken = false;
+                        int takenColorSlots = 0;
+                        foreach (var v in existing)
+                        {
+                            if (Mathf.Abs(v.SideOffsetPixels - offset) < 0.5f)
+                            {
+                                sideTaken = true;
+                            }
+
+                            if (!def.IsGrey && v.RouteColor == def.Color)
+                            {
+                                takenColorSlots++;
+                            }
+                        }
+
+                        if (sideTaken)
+                        {
+                            continue;
+                        }
+
+                        // 彩色双线补第二条时选没被用过的颜色。
+                        if (!def.IsGrey)
+                        {
+                            TrainCarColor needed = takenColorSlots == 0 ? def.Color : def.Color2;
+                            CreateRouteBetweenCities(def.City1, def.City2, def.Length, needed, false, offset);
+                            report.CreatedTracks++;
+                            continue;
+                        }
+                    }
+
+                    TrainCarColor color = def.IsGrey
+                        ? TrainCarColor.Red
+                        : def.GetTrackColor(track);
+
+                    CreateRouteBetweenCities(
+                        def.City1, def.City2, def.Length, color,
+                        def.IsGrey, offset);
+                    report.CreatedTracks++;
+                }
+            }
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(routeParent);
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(routeParent.gameObject.scene);
+#endif
+
+            return report;
+        }
+
+        /// <summary>
+        /// 只核对不生成：统计场景里相对官方表还缺哪些城市对/轨道，
+        /// 以及哪些官方城市没摆。
+        /// </summary>
+        public OfficialRouteReport AuditOfficialRoutes()
+        {
+            var report = new OfficialRouteReport();
+
+            foreach (var def in OfficialUsRouteTable.All)
+            {
+                bool city1Missing = FindCity(def.City1) == null;
+                bool city2Missing = FindCity(def.City2) == null;
+
+                if (city1Missing && !report.MissingCities.Contains(def.City1))
+                {
+                    report.MissingCities.Add(def.City1);
+                }
+
+                if (city2Missing && !report.MissingCities.Contains(def.City2))
+                {
+                    report.MissingCities.Add(def.City2);
+                }
+
+                if (city1Missing || city2Missing)
+                {
+                    continue;
+                }
+
+                int count = FindRoutesBetweenCities(def.City1, def.City2).Count;
+                int expected = def.TrackCount;
+
+                if (count >= expected)
+                {
+                    report.SkippedPairs++;
+                }
+                else
+                {
+                    string colorText = def.IsGrey
+                        ? "灰"
+                        : (def.IsDouble ? $"{def.Color}/{def.Color2}" : def.Color.ToString());
+                    report.MissingPairs.Add(
+                        $"{def.City1} — {def.City2}（{def.Length} 节，{colorText}，" +
+                        $"缺 {expected - count}/{expected} 条）");
+                }
+            }
+
+            return report;
+        }
+
+        /// <summary>找出场景里绑定在指定两个城市之间（方向不分先后）的全部路线。</summary>
+        private List<RouteVisual> FindRoutesBetweenCities(string city1, string city2)
+        {
+            var result = new List<RouteVisual>();
+
+            if (routeParent == null)
+            {
+                return result;
+            }
+
+            foreach (Transform child in routeParent)
+            {
+                var visual = child.GetComponent<RouteVisual>();
+                if (visual == null)
+                {
+                    continue;
+                }
+
+                bool forward = visual.StartCityId == city1 && visual.EndCityId == city2;
+                bool reverse = visual.StartCityId == city2 && visual.EndCityId == city1;
+
+                if (forward || reverse)
+                {
+                    result.Add(visual);
+                }
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>官方路线批量生成/核对的结果报告。</summary>
+    public class OfficialRouteReport
+    {
+        /// <summary>本次新建的轨道条数。</summary>
+        public int CreatedTracks;
+
+        /// <summary>已存在而跳过的城市对数。</summary>
+        public int SkippedPairs;
+
+        /// <summary>官方城市中场景里没找到的（摆点遗漏）。</summary>
+        public List<string> MissingCities = new List<string>();
+
+        /// <summary>核对时发现缺失的城市对描述（仅 Audit 使用）。</summary>
+        public List<string> MissingPairs = new List<string>();
+
+        /// <summary>其它提示/错误。</summary>
+        public List<string> Notes = new List<string>();
     }
 
     [System.Serializable]
@@ -547,6 +849,10 @@ namespace TicketToRide.Presentation
         public Vector2 startPosition;
         public Vector2 endPosition;
         public TrainCarColor routeColor;
+        [Tooltip("灰色万能路线：任意同色车厢卡均可认领。")]
+        public bool isGreyRoute;
+        [Tooltip("平行双线垂直平移量（Map.png 像素单位）。")]
+        public float sideOffsetPixels;
         [Range(1, 6)] public int length = 1;
         public bool isClaimed;
     }

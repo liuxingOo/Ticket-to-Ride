@@ -9,8 +9,8 @@ namespace TicketToRide.Application
         {
             var deck = TrainCarDeck.CreateStandardDeck();
 
-            var playerOne = new Player("player_1", "Alice");
-            var playerTwo = new Player("player_2", "Bob");
+            var playerOne = new Player("player_1", "Alice", TrainCarColor.Red);
+            var playerTwo = new Player("player_2", "Bob", TrainCarColor.Blue);
 
             playerOne.Hand.AddCards(deck.DrawMany(4));
             playerTwo.Hand.AddCards(deck.DrawMany(4));

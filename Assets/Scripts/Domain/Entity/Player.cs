@@ -8,13 +8,14 @@ namespace TicketToRide.Domain
     {
         public string Id { get; }
         public string Name { get; }
+        public TrainCarColor Color { get; }
         public PlayerHand Hand { get; }
         public int TrainCarsRemaining { get; private set; }
         public int Score { get; private set; }
         public List<Route> ClaimedRoutes { get; }
         public List<DestinationTicket> DestinationTickets { get; }
 
-        public Player(string id, string name, int startingTrainCars = 45)
+        public Player(string id, string name, TrainCarColor color, int startingTrainCars = 45)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -33,6 +34,7 @@ namespace TicketToRide.Domain
 
             Id = id;
             Name = name;
+            Color = color;
             Hand = new PlayerHand();
             ClaimedRoutes = new List<Route>();
             DestinationTickets = new List<DestinationTicket>();

@@ -240,8 +240,8 @@ namespace TicketToRide.Presentation
                     return new Color(0.2f, 0.75f, 0.35f, 1f);
                 case TrainCarColor.Blue:
                     return new Color(0.2f, 0.45f, 0.9f, 1f);
-                case TrainCarColor.Purple:
-                    return new Color(0.58f, 0.28f, 0.72f, 1f);
+                case TrainCarColor.Pink:
+                    return new Color(0.9f, 0.4f, 0.7f, 1f);
                 case TrainCarColor.Black:
                     return new Color(0.18f, 0.18f, 0.18f, 1f);
                 case TrainCarColor.White:

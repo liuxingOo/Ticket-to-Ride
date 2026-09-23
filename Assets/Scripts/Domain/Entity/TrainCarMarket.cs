@@ -31,6 +31,9 @@ namespace TicketToRide.Domain
             _visibleCards = new List<TrainCarCard>();
             MaxVisibleCards = maxVisibleCards;
             RefillVisibleCards();
+
+            // 初始发牌若出现 3 张及以上火车头，按规则整组弃掉重发。
+            EnsureNoLocomotiveOverflow();
         }
 
         public void RefillVisibleCards()
@@ -43,15 +46,34 @@ namespace TicketToRide.Domain
 
         public void ResetMarket()
         {
-            if (_visibleCards.Count == 0)
+            if (_visibleCards.Count > 0)
             {
-                RefillVisibleCards();
-                return;
+                _deck.DiscardCards(_visibleCards);
+                _visibleCards.Clear();
             }
 
-            _deck.DiscardCards(_visibleCards);
-            _visibleCards.Clear();
             RefillVisibleCards();
+            EnsureNoLocomotiveOverflow();
+        }
+
+        /// <summary>
+        /// 规则：市场可见区出现 3 张及以上火车头时，整组弃掉重发。
+        /// 循环直到满足条件或牌堆耗尽（安全上限防止极端情况死循环）。
+        /// </summary>
+        private void EnsureNoLocomotiveOverflow()
+        {
+            int safety = 0;
+            while (CountVisibleLocomotives() >= 3 && safety < 100)
+            {
+                if (_visibleCards.Count > 0)
+                {
+                    _deck.DiscardCards(_visibleCards);
+                    _visibleCards.Clear();
+                }
+
+                RefillVisibleCards();
+                safety++;
+            }
         }
 
         public TrainCarCard TakeTopDeckCard()

@@ -18,7 +18,7 @@ namespace TicketToRide.Presentation.EditorTools
             TrainCarColor.Yellow,
             TrainCarColor.Green,
             TrainCarColor.Blue,
-            TrainCarColor.Purple,
+            TrainCarColor.Pink,
             TrainCarColor.Black,
             TrainCarColor.White
         };
