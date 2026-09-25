@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,9 +16,11 @@ namespace TicketToRide.Presentation
         [SerializeField] private Button drawTrainCardButton;
         [SerializeField] private DestinationHandView destinationHandView;
         [SerializeField] private DestinationDeckView destinationDeckView;
+        [SerializeField] private PlayerStatusBar playerStatusBar;
 
         private GameSession _gameSession;
         private bool _destinationPanelOpen;
+        private bool _preGameSetupDone;
 
         /// <summary>当前游戏会话（供认领控制器等其它表现层组件使用）。</summary>
         public GameSession Session => _gameSession;
@@ -76,6 +79,11 @@ namespace TicketToRide.Presentation
                 destinationDeckView = FindAnyObjectByType<DestinationDeckView>();
             }
 
+            if (playerStatusBar == null)
+            {
+                playerStatusBar = FindAnyObjectByType<PlayerStatusBar>();
+            }
+
             if (destinationDeckView != null)
             {
                 destinationDeckView.OnDeckClicked += OnDestinationDeckClicked;
@@ -102,8 +110,52 @@ namespace TicketToRide.Presentation
 
         private void Start()
         {
-            // 开局任务卡挑选放在 Start：此时场景里手动创建的
-            // DestinationTicketSpriteLibrary / DestinationHandView 都已 Awake，能被找到。
+            // 开局流程：先选列车颜色（此时还没发车票、没发任务卡），
+            // 所有玩家依次选完后才发初始车票，再弹任务卡 3 选 2。
+            // 放在 Start：此时场景里手动创建的 SpriteLibrary / DestinationHandView 等都已 Awake。
+            BeginPlayerColorSelection(0, new HashSet<PlayerTrainColor>());
+        }
+
+        /// <summary>递归式地为每位玩家依次弹出选色面板；takenColors 记录已被选走的颜色。</summary>
+        private void BeginPlayerColorSelection(int playerIndex, HashSet<PlayerTrainColor> takenColors)
+        {
+            var players = _gameSession.GameState.Players;
+            if (playerIndex >= players.Count)
+            {
+                FinishPreGameSetup();
+                return;
+            }
+
+            var canvas = GetComponentInParent<Canvas>();
+            var panel = PlayerColorSelectPanel.Open(canvas, players[playerIndex], takenColors, color =>
+            {
+                players[playerIndex].SetTrainColor(color);
+                takenColors.Add(color);
+                Debug.Log($"[GameSessionView] {players[playerIndex].Name} 选择了 {color} 色列车。");
+
+                // 每选完一人立刻刷新状态栏，边框/图标/ID 颜色即时更新。
+                RefreshPlayerInfo();
+                BeginPlayerColorSelection(playerIndex + 1, takenColors);
+            });
+
+            if (panel == null)
+            {
+                Debug.LogError("[GameSessionView] 列车颜色选择面板创建失败（canvas 为空？），跳过选色直接发牌。");
+                FinishPreGameSetup();
+            }
+        }
+
+        /// <summary>所有玩家颜色选完：发初始车票 → 刷新视图 → 开局任务卡 3 选 2。</summary>
+        private void FinishPreGameSetup()
+        {
+            if (_preGameSetupDone)
+            {
+                return;
+            }
+
+            _preGameSetupDone = true;
+            _gameSession.DealInitialTrainCards();
+            RefreshViews();
             OpenInitialDestinationDraft();
         }
 
@@ -308,6 +360,11 @@ namespace TicketToRide.Presentation
             if (destinationDeckView != null)
             {
                 destinationDeckView.Refresh(_gameSession.GameState.DestinationTicketDeck.Count);
+            }
+
+            if (playerStatusBar != null)
+            {
+                playerStatusBar.Refresh(_gameSession.GameState.Players);
             }
         }
 

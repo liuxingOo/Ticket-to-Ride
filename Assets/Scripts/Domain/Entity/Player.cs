@@ -4,18 +4,31 @@ using System.Linq;
 
 namespace TicketToRide.Domain
 {
+    /// <summary>
+    /// 玩家方列车颜色（本项目素材为红/黄/蓝/绿/紫五色）。
+    /// 注意：这是玩家阵营颜色，与车票卡/路线颜色 TrainCarColor（含橙粉白火车头）是两个概念，不要混用。
+    /// </summary>
+    public enum PlayerTrainColor
+    {
+        Red,
+        Yellow,
+        Blue,
+        Green,
+        Purple
+    }
+
     public class Player
     {
         public string Id { get; }
         public string Name { get; }
-        public TrainCarColor Color { get; }
+        public PlayerTrainColor Color { get; private set; }
         public PlayerHand Hand { get; }
         public int TrainCarsRemaining { get; private set; }
         public int Score { get; private set; }
         public List<Route> ClaimedRoutes { get; }
         public List<DestinationTicket> DestinationTickets { get; }
 
-        public Player(string id, string name, TrainCarColor color, int startingTrainCars = 45)
+        public Player(string id, string name, PlayerTrainColor color, int startingTrainCars = 45)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -39,6 +52,12 @@ namespace TicketToRide.Domain
             ClaimedRoutes = new List<Route>();
             DestinationTickets = new List<DestinationTicket>();
             TrainCarsRemaining = startingTrainCars;
+        }
+
+        /// <summary>开局前列车颜色选择流程写入玩家最终选择的颜色（在发初始车票之前调用）。</summary>
+        public void SetTrainColor(PlayerTrainColor color)
+        {
+            Color = color;
         }
 
         public void AddDestinationTickets(IEnumerable<DestinationTicket> tickets)

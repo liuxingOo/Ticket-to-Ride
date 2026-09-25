@@ -27,7 +27,7 @@ namespace TicketToRide.Presentation
         [SerializeField] private bool isGreyRoute;
         [SerializeField] private bool isClaimed;
         [Tooltip("认领后显示的玩家颜色（由认领控制器写入）。")]
-        [SerializeField] private TrainCarColor claimedPlayerColor = TrainCarColor.Red;
+        [SerializeField] private PlayerTrainColor claimedPlayerColor = PlayerTrainColor.Red;
         [Tooltip("鼠标悬停时热区的高亮色（编辑模式青色预览会被此色覆盖）。")]
         [SerializeField] private Color hoverColor = new Color(1f, 0.92f, 0.3f, 0.35f);
 
@@ -460,7 +460,7 @@ namespace TicketToRide.Presentation
         /// <summary>
         /// 标记路线已被某位玩家认领，用该玩家颜色重绘车厢。
         /// </summary>
-        public void Claim(TrainCarColor playerColor)
+        public void Claim(PlayerTrainColor playerColor)
         {
             if (isClaimed)
             {
@@ -523,28 +523,20 @@ namespace TicketToRide.Presentation
             _highlightImage.color = Color.white;
         }
 
-        private Color GetClaimedColor(TrainCarColor color)
+        private Color GetClaimedColor(PlayerTrainColor color)
         {
             switch (color)
             {
-                case TrainCarColor.Red:
+                case PlayerTrainColor.Red:
                     return new Color(0.85f, 0.2f, 0.2f, 1f);
-                case TrainCarColor.Orange:
-                    return new Color(0.95f, 0.55f, 0.15f, 1f);
-                case TrainCarColor.Yellow:
+                case PlayerTrainColor.Yellow:
                     return new Color(0.95f, 0.85f, 0.2f, 1f);
-                case TrainCarColor.Green:
-                    return new Color(0.25f, 0.7f, 0.3f, 1f);
-                case TrainCarColor.Blue:
+                case PlayerTrainColor.Blue:
                     return new Color(0.2f, 0.45f, 0.9f, 1f);
-                case TrainCarColor.Pink:
-                    return new Color(0.9f, 0.4f, 0.7f, 1f);
-                case TrainCarColor.Black:
-                    return new Color(0.15f, 0.15f, 0.15f, 1f);
-                case TrainCarColor.White:
-                    return new Color(0.92f, 0.92f, 0.9f, 1f);
-                case TrainCarColor.Locomotive:
-                    return new Color(0.6f, 0.12f, 0.12f, 1f);
+                case PlayerTrainColor.Green:
+                    return new Color(0.25f, 0.7f, 0.3f, 1f);
+                case PlayerTrainColor.Purple:
+                    return new Color(0.6f, 0.25f, 0.85f, 1f);
                 default:
                     return Color.white;
             }

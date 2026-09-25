@@ -28,14 +28,21 @@ namespace TicketToRide.Application
             var deck = TrainCarDeck.CreateStandardDeck();
             var market = new TrainCarMarket(deck);
             var destinationTicketDeck = DestinationTicketDeck.CreateStandardDeck();
-            var playerOne = new Player("player_1", "Alice", TrainCarColor.Red);
+            var playerOne = new Player("player_1", "Alice", PlayerTrainColor.Red);
 
-            playerOne.Hand.AddCards(deck.DrawMany(4));
-
-            // 任务卡不再直接发到手里：开局由 DestinationDraftPanel 弹出 3 张，玩家留至少 2 张。
-
+            // 初始车票不在创建时发：开局先走列车颜色选择，选完后由 DealInitialTrainCards 统一发，
+            // 随后才弹 DestinationDraftPanel 做任务卡 3 选 2。
             var players = new List<Player> { playerOne };
             return new GameSession(players, deck, market, destinationTicketDeck);
+        }
+
+        /// <summary>所有玩家选完列车颜色后调用：给每位玩家发初始车票（标准版每人 4 张）。</summary>
+        public void DealInitialTrainCards(int perPlayer = 4)
+        {
+            foreach (var player in GameState.Players)
+            {
+                player.Hand.AddCards(GameState.TrainCarDeck.DrawMany(perPlayer));
+            }
         }
     }
 }
