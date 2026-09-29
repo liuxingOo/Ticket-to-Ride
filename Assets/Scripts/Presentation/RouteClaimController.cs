@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using TicketToRide.Application;
 using TicketToRide.Domain;
@@ -60,7 +60,7 @@ namespace TicketToRide.Presentation
 
         private void BuildRouteMap()
         {
-            var visuals = FindObjectsByType<RouteVisual>(FindObjectsSortMode.None);
+            var visuals = FindObjectsByType<RouteVisual>(FindObjectsInactive.Exclude);
 
             foreach (var visual in visuals)
             {

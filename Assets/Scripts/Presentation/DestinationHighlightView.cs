@@ -92,7 +92,7 @@ namespace TicketToRide.Presentation
                 return null;
             }
 
-            var markers = FindObjectsByType<CityMarker>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var markers = FindObjectsByType<CityMarker>(FindObjectsInactive.Include);
             foreach (var marker in markers)
             {
                 if (marker.CityId == cityId)
