@@ -7,13 +7,12 @@ namespace TicketToRide.Presentation
 {
     /// <summary>
     /// 右上角玩家状态栏：每个玩家占一横行，从左到右依次显示
-    /// [图标] 玩家ID  [图标] 得分  [图标] 车票数  [图标] 任务卡数
-    /// 玩家ID 的文字颜色 = 该玩家手持车厢颜色。
-    /// 图标 sprite 暂时留空（显示为透明占位方块），之后用户找到素材再拖入。
+    /// 玩家名字（文字颜色 = 该玩家车厢颜色） [分数图标] 得分 [列车图标] 剩余车厢数 [车票图标] 持有车票数 [任务卡图标] 持有任务卡数
+    /// 图标 sprite 留空时显示为透明占位方块。
     /// </summary>
     public class PlayerStatusBar : MonoBehaviour
     {
-        [Header("玩家ID 列车图标：按玩家车厢颜色取对应颜色（红/黄/蓝/绿/紫五色，切片后逐色拖入，留空则用兜底图标）")]
+        [Header("剩余车厢数量的列车图标：按玩家车厢颜色取对应颜色（红/黄/蓝/绿/紫五色，切片后逐色拖入，留空则用兜底图标）")]
         [SerializeField] private Sprite redIdIcon;
         [SerializeField] private Sprite yellowIdIcon;
         [SerializeField] private Sprite blueIdIcon;
@@ -128,41 +127,49 @@ namespace TicketToRide.Presentation
 
             float cursorX = 0f;
 
-            // --- 玩家 ID（图标按玩家车厢颜色取对应颜色的列车图）---
-            var idIconRect = CreateIcon(rowRect, GetIdIcon(player.Color), ref cursorX);
-            var idLabel = CreateText(rowRect, "ID", fontSize, TextAnchor.MiddleLeft);
-            idLabel.color = GetPlayerColor(player.Color);
-            idLabel.text = player.Id;
-            PositionAfterIcon(idLabel.rectTransform, idIconRect, ref cursorX);
+            // --- 玩家名字（排在最前，无前置图标；文字颜色按玩家车厢颜色）---
+            var nameLabel = CreateText(rowRect, "Name", fontSize, TextAnchor.MiddleLeft);
+            nameLabel.color = GetPlayerColor(player.Color);
+            nameLabel.text = player.Name;
+            PositionText(nameLabel.rectTransform, ref cursorX);
             cursorX += itemSpacing;
 
             // --- 得分 ---
-            var scoreIconRect = CreateIcon(rowRect, scoreIcon, ref cursorX);
+            CreateIcon(rowRect, scoreIcon, ref cursorX);
             var scoreLabel = CreateText(rowRect, "Score", fontSize, TextAnchor.MiddleLeft);
             scoreLabel.color = Color.white;
             scoreLabel.text = player.Score.ToString();
-            PositionAfterIcon(scoreLabel.rectTransform, scoreIconRect, ref cursorX);
+            PositionText(scoreLabel.rectTransform, ref cursorX);
+            cursorX += itemSpacing;
+
+            // --- 剩余车厢数（列车图标按玩家车厢颜色取对应颜色的列车图）---
+            CreateIcon(rowRect, GetTrainIcon(player.Color), ref cursorX);
+            var trainLabel = CreateText(rowRect, "Trains", fontSize, TextAnchor.MiddleLeft);
+            trainLabel.color = Color.white;
+            trainLabel.text = player.TrainCarsRemaining.ToString();
+            PositionText(trainLabel.rectTransform, ref cursorX);
             cursorX += itemSpacing;
 
             // --- 车票数 ---
-            var handIconRect = CreateIcon(rowRect, handIcon, ref cursorX);
+            CreateIcon(rowRect, handIcon, ref cursorX);
             var handLabel = CreateText(rowRect, "Hand", fontSize, TextAnchor.MiddleLeft);
             handLabel.color = Color.white;
             handLabel.text = player.Hand.Count.ToString();
-            PositionAfterIcon(handLabel.rectTransform, handIconRect, ref cursorX);
+            PositionText(handLabel.rectTransform, ref cursorX);
             cursorX += itemSpacing;
 
             // --- 任务卡数 ---
-            var ticketIconRect = CreateIcon(rowRect, ticketIcon, ref cursorX);
+            CreateIcon(rowRect, ticketIcon, ref cursorX);
             var ticketLabel = CreateText(rowRect, "Tickets", fontSize, TextAnchor.MiddleLeft);
             ticketLabel.color = Color.white;
             ticketLabel.text = player.DestinationTickets.Count.ToString();
-            PositionAfterIcon(ticketLabel.rectTransform, ticketIconRect, ref cursorX);
+            PositionText(ticketLabel.rectTransform, ref cursorX);
 
             return new RowData
             {
-                idLabel = idLabel,
+                nameLabel = nameLabel,
                 scoreLabel = scoreLabel,
+                trainLabel = trainLabel,
                 handLabel = handLabel,
                 ticketLabel = ticketLabel
             };
@@ -204,8 +211,8 @@ namespace TicketToRide.Presentation
             return rect;
         }
 
-        /// <summary>把文字放在图标右边的 cursor 位置。</summary>
-        private void PositionAfterIcon(RectTransform textRect, RectTransform iconRect, ref float cursorX)
+        /// <summary>把文字放在当前 cursor 位置（cursor 已包含前置图标宽度与其间距）。</summary>
+        private void PositionText(RectTransform textRect, ref float cursorX)
         {
             textRect.anchorMin = new Vector2(0f, 0.5f);
             textRect.anchorMax = new Vector2(0f, 0.5f);
@@ -242,15 +249,20 @@ namespace TicketToRide.Presentation
 
         private void UpdateRowData(RowData row, Player player)
         {
-            if (row.idLabel != null)
+            if (row.nameLabel != null)
             {
-                row.idLabel.text = player.Id;
-                row.idLabel.color = GetPlayerColor(player.Color);
+                row.nameLabel.text = player.Name;
+                row.nameLabel.color = GetPlayerColor(player.Color);
             }
 
             if (row.scoreLabel != null)
             {
                 row.scoreLabel.text = player.Score.ToString();
+            }
+
+            if (row.trainLabel != null)
+            {
+                row.trainLabel.text = player.TrainCarsRemaining.ToString();
             }
 
             if (row.handLabel != null)
@@ -264,8 +276,8 @@ namespace TicketToRide.Presentation
             }
         }
 
-        /// <summary>玩家ID 图标：优先按玩家车厢颜色取对应颜色的列车图标，该颜色槽没拖时回退到兜底 idIcon。</summary>
-        private Sprite GetIdIcon(PlayerTrainColor color)
+        /// <summary>剩余车厢数的列车图标：优先按玩家车厢颜色取对应颜色，该颜色槽没拖时回退到兜底 idIcon。</summary>
+        private Sprite GetTrainIcon(PlayerTrainColor color)
         {
             Sprite colored;
             switch (color)
@@ -296,8 +308,9 @@ namespace TicketToRide.Presentation
 
         private class RowData
         {
-            public Text idLabel;
+            public Text nameLabel;
             public Text scoreLabel;
+            public Text trainLabel;
             public Text handLabel;
             public Text ticketLabel;
         }

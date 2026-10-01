@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TicketToRide.Application;
@@ -18,6 +19,7 @@ namespace TicketToRide.Presentation
         private GameSession _session;
         private readonly Dictionary<RouteVisual, Route> _routeByVisual = new();
         private ClaimPanel _activePanel;
+        private Coroutine _tipRoutine;
 
         private void Start()
         {
@@ -76,6 +78,9 @@ namespace TicketToRide.Presentation
                 visual.RouteClicked += OnRouteClicked;
             }
 
+            // 登记进 GameState：双轨规则需要纵览全盘（同城市对的另一条轨道是谁的）。
+            _session.GameState.RegisterRoutes(_routeByVisual.Values);
+
             Debug.Log($"[RouteClaimController] 已为 {_routeByVisual.Count} 条路线建立认领映射。");
         }
 
@@ -95,6 +100,15 @@ namespace TicketToRide.Presentation
             }
 
             var player = _session.GameState.CurrentPlayer;
+
+            // 双轨规则：被封锁的平行轨道不弹认领面板，只给一句简短提示。
+            if (_session.GameState.IsBlockedByParallelRule(route, player))
+            {
+                Debug.Log($"[RouteClaimController] {route.StartCity}–{route.EndCity} 因双轨规则不可认领（当前 {_session.GameState.Players.Count} 人局）。");
+                ShowTip("此双轨已封锁，只能使用一条");
+                return;
+            }
+
             Debug.Log($"[RouteClaimController] 打开认领面板，canvas={(canvas != null ? "OK" : "NULL")}");
 
             _activePanel = ClaimPanel.Open(
@@ -129,6 +143,58 @@ namespace TicketToRide.Presentation
                     $"[RouteClaim] {player.Name} 认领了 {route.StartCity}–{route.EndCity}" +
                     $"（{route.Length} 节，{player.Color}），剩余车厢 {player.TrainCarsRemaining}，得分 {player.Score}。");
             }
+            else if (_session.GameState.IsBlockedByParallelRule(route, player))
+            {
+                ShowTip("此双轨已封锁，只能使用一条");
+            }
+            else
+            {
+                Debug.LogWarning($"[RouteClaim] 认领失败：{route.StartCity}–{route.EndCity}。");
+            }
+        }
+
+        /// <summary>
+        /// 简短提示：复用城市悬停提示的样式（无底板、跟随鼠标），1.8 秒后自动消失。
+        /// </summary>
+        private void ShowTip(string text)
+        {
+            if (canvas == null)
+            {
+                canvas = FindAnyObjectByType<Canvas>();
+            }
+
+            if (canvas == null)
+            {
+                return;
+            }
+
+            var tooltip = CityTooltip.Get(canvas);
+            if (tooltip == null)
+            {
+                return;
+            }
+
+            tooltip.Show(text);
+
+            if (_tipRoutine != null)
+            {
+                StopCoroutine(_tipRoutine);
+            }
+
+            _tipRoutine = StartCoroutine(HideTipAfter(1.8f));
+        }
+
+        private IEnumerator HideTipAfter(float seconds)
+        {
+            yield return new WaitForSeconds(seconds);
+
+            var tooltip = CityTooltip.Instance;
+            if (tooltip != null)
+            {
+                tooltip.Hide();
+            }
+
+            _tipRoutine = null;
         }
     }
 }

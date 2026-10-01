@@ -168,6 +168,12 @@ namespace TicketToRide.Domain
                 return false;
             }
 
+            // 双轨规则：2–3 人局同城市对只能用一条；4–5 人局同一玩家不能占两条。
+            if (_gameState.IsBlockedByParallelRule(route, currentPlayer))
+            {
+                return false;
+            }
+
             currentPlayer.TryClaimRoute(route, list);
             return true;
         }
