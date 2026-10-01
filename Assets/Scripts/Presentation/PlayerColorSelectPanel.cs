@@ -165,7 +165,7 @@ namespace TicketToRide.Presentation
             callback?.Invoke(color);
         }
 
-        private static string GetColorName(PlayerTrainColor color)
+        public static string GetColorName(PlayerTrainColor color)
         {
             switch (color)
             {
@@ -178,7 +178,8 @@ namespace TicketToRide.Presentation
             }
         }
 
-        private static Color GetColorValue(PlayerTrainColor color)
+        /// <summary>供其它运行时面板（如 FinalScorePanel）复用的玩家色值。</summary>
+        public static Color GetColorValue(PlayerTrainColor color)
         {
             switch (color)
             {

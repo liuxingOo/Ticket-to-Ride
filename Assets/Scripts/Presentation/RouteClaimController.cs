@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,37 +14,28 @@ namespace TicketToRide.Presentation
     /// </summary>
     public class RouteClaimController : MonoBehaviour
     {
-        [SerializeField] private GameSessionView sessionView;
         [SerializeField] private Canvas canvas;
 
         private GameSession _session;
+        private GameSessionView _sessionView;
         private readonly Dictionary<RouteVisual, Route> _routeByVisual = new();
         private ClaimPanel _activePanel;
         private Coroutine _tipRoutine;
 
-        private void Start()
+        /// <summary>
+        /// 由 GameSessionView 在会话创建好（选完人数）之后调用。
+        /// 开局前还没有会话，所以映射必须等到这一步才建立。
+        /// </summary>
+        public void Initialize(GameSession session, GameSessionView sessionView)
         {
-            Debug.Log("[RouteClaimController] Start 执行，开始初始化认领控制器。");
-
-            if (sessionView == null)
-            {
-                sessionView = FindAnyObjectByType<GameSessionView>();
-            }
+            _session = session ?? throw new ArgumentNullException(nameof(session));
+            _sessionView = sessionView;
 
             if (canvas == null)
             {
                 canvas = FindAnyObjectByType<Canvas>();
             }
 
-            Debug.Log($"[RouteClaimController] sessionView={(sessionView != null ? "已找到" : "NULL")}, canvas={(canvas != null ? "已找到" : "NULL")}");
-
-            if (sessionView == null || sessionView.Session == null)
-            {
-                Debug.LogError("[RouteClaimController] 找不到 GameSessionView，认领功能不可用。");
-                return;
-            }
-
-            _session = sessionView.Session;
             BuildRouteMap();
         }
 
@@ -99,6 +91,19 @@ namespace TicketToRide.Presentation
                 return;
             }
 
+            if (_session.GameState.IsGameOver)
+            {
+                ShowTip("游戏已经结束");
+                return;
+            }
+
+            // 一回合只能做一个动作：动作已经开始，本回合不能再认领路线。
+            if (_session.GameState.TurnPhase != TurnActionPhase.AwaitingAction)
+            {
+                ShowTip("本回合已执行过动作");
+                return;
+            }
+
             var player = _session.GameState.CurrentPlayer;
 
             // 双轨规则：被封锁的平行轨道不弹认领面板，只给一句简短提示。
@@ -137,7 +142,7 @@ namespace TicketToRide.Presentation
             if (_session.TurnManager.ClaimRoute(route, cards))
             {
                 visual.Claim(player.Color);
-                sessionView.RefreshHand();
+                _sessionView?.RefreshHand();
 
                 Debug.Log(
                     $"[RouteClaim] {player.Name} 认领了 {route.StartCity}–{route.EndCity}" +

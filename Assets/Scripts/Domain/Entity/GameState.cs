@@ -12,6 +12,24 @@ namespace TicketToRide.Domain
         public DestinationTicketDeck DestinationTicketDeck { get; }
         public Queue<Player> TurnOrder { get; }
         public Player CurrentPlayer => TurnOrder.Peek();
+
+        /// <summary>下一位行动的玩家。只用于提示，不会改变行动顺序。</summary>
+        public Player NextPlayer
+        {
+            get
+            {
+                if (TurnOrder.Count <= 1)
+                {
+                    return CurrentPlayer;
+                }
+
+                var enumerator = TurnOrder.GetEnumerator();
+                enumerator.MoveNext();
+                enumerator.MoveNext();
+                return enumerator.Current;
+            }
+        }
+
         public bool IsGameOver { get; private set; }
 
         /// <summary>终局阈值：任一玩家剩余车厢 ≤ 该值时进入「最后一轮」。</summary>
@@ -22,6 +40,22 @@ namespace TicketToRide.Domain
 
         /// <summary>最后一轮还剩几个回合（减到 0 即游戏结束）。</summary>
         public int FinalRoundTurnsRemaining { get; private set; }
+
+        /// <summary>
+        /// 官方行动顺序配色：红 → 黄 → 蓝 → 绿 → 紫，最多支持 5 人。
+        /// 既是行动顺序的排序依据，也是本局人数上限。
+        /// </summary>
+        public static readonly PlayerTrainColor[] TurnOrderColors =
+        {
+            PlayerTrainColor.Red,
+            PlayerTrainColor.Yellow,
+            PlayerTrainColor.Blue,
+            PlayerTrainColor.Green,
+            PlayerTrainColor.Purple,
+        };
+
+        /// <summary>当前回合的动作状态（官方：一回合只能做一个动作）。</summary>
+        public TurnActionPhase TurnPhase { get; private set; } = TurnActionPhase.AwaitingAction;
 
         private readonly List<Route> _routes = new List<Route>();
 
@@ -75,11 +109,60 @@ namespace TicketToRide.Domain
 
             var currentPlayer = TurnOrder.Dequeue();
             TurnOrder.Enqueue(currentPlayer);
+
+            // 新回合开始，动作状态归零。
+            TurnPhase = TurnActionPhase.AwaitingAction;
         }
 
         public void EndGame()
         {
             IsGameOver = true;
+        }
+
+        /// <summary>推进本回合的动作状态（仅 TurnManager 调用）。</summary>
+        public void SetTurnPhase(TurnActionPhase phase)
+        {
+            TurnPhase = phase;
+        }
+
+        /// <summary>
+        /// 所有玩家选完列车颜色后调用：按 红→黄→蓝→绿→紫 重排行动顺序，
+        /// 缺失的颜色直接跳过（如 4 人无蓝色即 红→黄→绿→紫）。
+        /// 颜色重复的极端情况保持原有先后（稳定排序）。
+        /// </summary>
+        public void RebuildTurnOrderByColor()
+        {
+            var ordered = Players
+                .Select((player, index) => new { Player = player, Index = index, Priority = ColorPriority(player.Color) })
+                .OrderBy(entry => entry.Priority)
+                .ThenBy(entry => entry.Index)
+                .Select(entry => entry.Player)
+                .ToList();
+
+            Players.Clear();
+            Players.AddRange(ordered);
+
+            TurnOrder.Clear();
+            foreach (var player in Players)
+            {
+                TurnOrder.Enqueue(player);
+            }
+
+            TurnPhase = TurnActionPhase.AwaitingAction;
+        }
+
+        private static int ColorPriority(PlayerTrainColor color)
+        {
+            for (int i = 0; i < TurnOrderColors.Length; i++)
+            {
+                if (TurnOrderColors[i] == color)
+                {
+                    return i;
+                }
+            }
+
+            // 不属于官方顺序的颜色排到最后（理论上不会出现）。
+            return TurnOrderColors.Length;
         }
 
         /// <summary>

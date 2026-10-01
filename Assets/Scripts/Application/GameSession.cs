@@ -23,16 +23,34 @@ namespace TicketToRide.Application
             RuleService = new RouteRuleService();
         }
 
-        public static GameSession CreateDemoSession()
+        /// <summary>开局可选的默认玩家名，下标对应人数-1（最多 5 人）。</summary>
+        private static readonly string[] DefaultPlayerNames = { "Alice", "Bob", "Carol", "Dave", "Erin" };
+
+        /// <summary>
+        /// 按人数创建一局游戏。默认列车颜色按官方行动顺序发放（红→黄→蓝→绿→紫），
+        /// 随后由开局选色面板逐个覆盖；所有玩家选完后 GameState.RebuildTurnOrderByColor 会重排行动顺序。
+        /// </summary>
+        public static GameSession CreateSession(int playerCount)
         {
+            if (playerCount < 1 || playerCount > GameState.TurnOrderColors.Length)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(playerCount),
+                    $"玩家人数必须在 1 到 {GameState.TurnOrderColors.Length} 之间。");
+            }
+
             var deck = TrainCarDeck.CreateStandardDeck();
             var market = new TrainCarMarket(deck);
             var destinationTicketDeck = DestinationTicketDeck.CreateStandardDeck();
-            var playerOne = new Player("player_1", "Alice", PlayerTrainColor.Red);
 
             // 初始车票不在创建时发：开局先走列车颜色选择，选完后由 DealInitialTrainCards 统一发，
-            // 随后才弹 DestinationDraftPanel 做任务卡 3 选 2。
-            var players = new List<Player> { playerOne };
+            // 随后才弹 DestinationDraftPanel 做任务卡挑选。
+            var players = new List<Player>();
+            for (int i = 0; i < playerCount; i++)
+            {
+                players.Add(new Player($"player_{i + 1}", DefaultPlayerNames[i], GameState.TurnOrderColors[i]));
+            }
+
             return new GameSession(players, deck, market, destinationTicketDeck);
         }
 
