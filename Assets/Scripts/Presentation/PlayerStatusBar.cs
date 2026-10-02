@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TicketToRide.Application.Net.Protocol;
 using TicketToRide.Domain;
 
 namespace TicketToRide.Presentation
@@ -58,8 +59,8 @@ namespace TicketToRide.Presentation
             }
         }
 
-        /// <summary>用一组玩家数据重建整张状态栏。</summary>
-        public void Refresh(IReadOnlyList<Player> players)
+        /// <summary>用一组玩家公开数据重建整张状态栏。</summary>
+        public void Refresh(IReadOnlyList<PublicPlayer> players)
         {
             if (players == null || Container == null)
             {
@@ -83,7 +84,7 @@ namespace TicketToRide.Presentation
         }
 
         /// <summary>只更新数据（不重建布局），供频繁刷新用。</summary>
-        public void UpdateData(IReadOnlyList<Player> players)
+        public void UpdateData(IReadOnlyList<PublicPlayer> players)
         {
             if (players == null)
             {
@@ -104,7 +105,7 @@ namespace TicketToRide.Presentation
             }
         }
 
-        private RowData CreateRow(Transform parent, Player player, float yOffset)
+        private RowData CreateRow(Transform parent, PublicPlayer player, float yOffset)
         {
             var rowGo = new GameObject($"PlayerRow_{player.Id}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             rowGo.transform.SetParent(parent, false);
@@ -154,7 +155,7 @@ namespace TicketToRide.Presentation
             CreateIcon(rowRect, handIcon, ref cursorX);
             var handLabel = CreateText(rowRect, "Hand", fontSize, TextAnchor.MiddleLeft);
             handLabel.color = Color.white;
-            handLabel.text = player.Hand.Count.ToString();
+            handLabel.text = player.HandCount.ToString();
             PositionText(handLabel.rectTransform, ref cursorX);
             cursorX += itemSpacing;
 
@@ -162,7 +163,7 @@ namespace TicketToRide.Presentation
             CreateIcon(rowRect, ticketIcon, ref cursorX);
             var ticketLabel = CreateText(rowRect, "Tickets", fontSize, TextAnchor.MiddleLeft);
             ticketLabel.color = Color.white;
-            ticketLabel.text = player.DestinationTickets.Count.ToString();
+            ticketLabel.text = player.TicketCount.ToString();
             PositionText(ticketLabel.rectTransform, ref cursorX);
 
             return new RowData
@@ -247,7 +248,7 @@ namespace TicketToRide.Presentation
             return text;
         }
 
-        private void UpdateRowData(RowData row, Player player)
+        private void UpdateRowData(RowData row, PublicPlayer player)
         {
             if (row.nameLabel != null)
             {
@@ -267,12 +268,12 @@ namespace TicketToRide.Presentation
 
             if (row.handLabel != null)
             {
-                row.handLabel.text = player.Hand.Count.ToString();
+                row.handLabel.text = player.HandCount.ToString();
             }
 
             if (row.ticketLabel != null)
             {
-                row.ticketLabel.text = player.DestinationTickets.Count.ToString();
+                row.ticketLabel.text = player.TicketCount.ToString();
             }
         }
 

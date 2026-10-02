@@ -1,65 +1,34 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using TicketToRide.Application;
+using TicketToRide.Application.Net.Protocol;
 using TicketToRide.Domain;
 
 namespace TicketToRide.Presentation
 {
+    /// <summary>
+    /// 市场明牌区。只负责「显示 + 上报点击槽位」，不再直接读 GameState：
+    /// 展示数据由 Refresh 传入（单机来自权威状态，客户端来自快照）；
+    /// 取牌动作通过控制器提交 MarketSlot，单机立即执行、联机发给主机。
+    /// </summary>
     public class TrainCardMarketView : MonoBehaviour
     {
         [SerializeField] private Transform marketRoot;
         [SerializeField] private TrainCarCardView marketCardPrefab;
         [SerializeField] private TrainCarCardSpriteLibrary spriteLibrary;
-        [SerializeField] private Button drawDeckButton;
-        [SerializeField] private Button resetMarketButton;
         [SerializeField] private Vector2 cardSpacing = new Vector2(0f, -190f);
 
-        private GameSession _session;
+        private IGameController _controller;
         private readonly List<TrainCarCardView> _marketViews = new List<TrainCarCardView>();
 
-        public event Action CardsAcquired;
-
-        private void Awake()
+        /// <summary>接入控制器：点牌时提交 TakeMarketCard 命令。</summary>
+        public void Bind(IGameController controller)
         {
-            if (drawDeckButton != null)
-            {
-                drawDeckButton.onClick.AddListener(OnDrawDeckClicked);
-            }
-
-            if (resetMarketButton != null)
-            {
-                resetMarketButton.onClick.AddListener(OnResetMarketClicked);
-            }
+            _controller = controller;
         }
 
-        private void OnDestroy()
+        public void Refresh(IReadOnlyList<TrainCarCard> cards)
         {
-            if (drawDeckButton != null)
-            {
-                drawDeckButton.onClick.RemoveListener(OnDrawDeckClicked);
-            }
-
-            if (resetMarketButton != null)
-            {
-                resetMarketButton.onClick.RemoveListener(OnResetMarketClicked);
-            }
-        }
-
-        public void Bind(GameSession session)
-        {
-            _session = session;
-            Refresh();
-        }
-
-        public void Refresh()
-        {
-            if (_session == null || _session.GameState == null)
-            {
-                return;
-            }
-
             if (marketRoot == null)
             {
                 Debug.LogError("[TrainCardMarketView] 没有绑定 marketRoot。 ");
@@ -82,10 +51,14 @@ namespace TicketToRide.Presentation
 
             _marketViews.Clear();
 
-            var visibleCards = _session.GameState.TrainCarMarket.VisibleCards;
-            for (int i = 0; i < visibleCards.Count; i++)
+            if (cards == null)
             {
-                var card = visibleCards[i];
+                return;
+            }
+
+            for (int i = 0; i < cards.Count; i++)
+            {
+                var card = cards[i];
                 if (card == null)
                 {
                     continue;
@@ -99,66 +72,31 @@ namespace TicketToRide.Presentation
 
                 var sprite = spriteLibrary != null ? spriteLibrary.GetSprite(card.Color) : null;
                 view.Initialize(card, sprite);
-                view.OnCardClicked += OnMarketCardClicked;
+
+                // 槽位下标是市场位置的唯一事实来源，所以点击只上报下标、不上报颜色。
+                int slot = i;
+                view.OnCardClicked += _ => OnMarketCardClicked(slot);
                 _marketViews.Add(view);
 
                 var rect = view.transform as RectTransform;
                 if (rect != null)
                 {
-                    float centeredIndex = i - (visibleCards.Count - 1) * 0.5f;
+                    float centeredIndex = i - (cards.Count - 1) * 0.5f;
                     rect.anchoredPosition = new Vector2(centeredIndex * cardSpacing.x, centeredIndex * cardSpacing.y);
                 }
             }
         }
 
-        private void OnMarketCardClicked(TrainCarCard card)
+        private void OnMarketCardClicked(int slot)
         {
-            if (_session == null || card == null)
+            if (_controller == null)
             {
+                Debug.LogWarning("[TrainCardMarketView] 控制器尚未接入，无法取牌。");
                 return;
             }
 
-            try
-            {
-                _session.TurnManager.TakeOneMarketCard(card);
-                Debug.Log($"[TrainCardMarketView] 从市场获得: {card}");
-                CardsAcquired?.Invoke();
-                Refresh();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning($"[TrainCardMarketView] 拿取市场车票失败: {exception.Message}");
-            }
-        }
-
-        private void OnDrawDeckClicked()
-        {
-            if (_session == null)
-            {
-                return;
-            }
-
-            try
-            {
-                var card = _session.TurnManager.DrawTrainCard();
-                Debug.Log($"[TrainCardMarketView] 从牌堆顶摸到: {card}");
-                CardsAcquired?.Invoke();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning($"[TrainCardMarketView] 从牌堆摸牌失败: {exception.Message}");
-            }
-        }
-
-        private void OnResetMarketClicked()
-        {
-            if (_session == null)
-            {
-                return;
-            }
-
-            _session.GameState.TrainCarMarket.ResetMarket();
-            Refresh();
+            Debug.Log($"[TrainCardMarketView] 从市场槽位 {slot} 取牌。");
+            _controller.Submit(new GameCommand { Kind = CommandKind.TakeMarketCard, MarketSlot = slot });
         }
     }
 }

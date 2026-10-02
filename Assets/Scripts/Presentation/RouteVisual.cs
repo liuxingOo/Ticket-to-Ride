@@ -311,29 +311,50 @@ namespace TicketToRide.Presentation
 
         private void OnValidate()
         {
+            // Play 模式下脚本重载也会触发 OnValidate，此时重建同样会撞 SendMessage 警告；
+            // 首次重建交给 OnEnable 处理即可。
+            if (UnityEngine.Application.isPlaying)
+            {
+                return;
+            }
+
             SafeRebuild();
         }
 
         /// <summary>
         /// 编辑模式用 EditorApplication.delayCall 推迟 Rebuild（避开 SendMessage during OnValidate 警告）；
-        /// Play 模式直接 Rebuild（无此警告）。
+        /// Play 模式也推迟一帧：场景加载时 OnEnable 仍处在 Awake 阶段，
+        /// 直接 new Car_* 子物体并 SetParent 会刷出「SendMessage cannot be called during Awake」警告。
         /// </summary>
         private void SafeRebuild()
         {
-#if UNITY_EDITOR
-            if (!UnityEngine.Application.isPlaying)
+            if (UnityEngine.Application.isPlaying)
             {
-                if (_rebuildQueued)
-                {
-                    return;
-                }
-
-                _rebuildQueued = true;
-                UnityEditor.EditorApplication.delayCall += DeferredRebuild;
+                StartCoroutine(RebuildNextFrame());
                 return;
             }
+
+#if UNITY_EDITOR
+            if (_rebuildQueued)
+            {
+                return;
+            }
+
+            _rebuildQueued = true;
+            UnityEditor.EditorApplication.delayCall += DeferredRebuild;
 #endif
-            // Play 模式：直接重建，不延迟。
+        }
+
+        /// <summary>Play 模式：等一帧、脱离 Awake/OnEnable 阶段后再重建车厢视觉。</summary>
+        private System.Collections.IEnumerator RebuildNextFrame()
+        {
+            yield return null;
+
+            if (this == null || gameObject == null)
+            {
+                yield break;
+            }
+
             Rebuild();
         }
 

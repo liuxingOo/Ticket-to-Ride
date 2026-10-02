@@ -28,7 +28,7 @@ namespace TicketToRide.Presentation
         private Text _confirmLabel;
 
         private Route _route;
-        private Player _player;
+        private List<TrainCarCard> _hand;
         private Action<List<TrainCarCard>> _onConfirm;
         private Action _onCancel;
 
@@ -46,7 +46,26 @@ namespace TicketToRide.Presentation
             Action<List<TrainCarCard>> onConfirm,
             Action onCancel)
         {
-            if (canvas == null)
+            if (player == null)
+            {
+                return null;
+            }
+
+            return Open(canvas, route, player.Hand.GetCards(), onConfirm, onCancel);
+        }
+
+        /// <summary>
+        /// 直接用「手牌」打开面板：客户端没有领域 Player，只有快照里自己的手牌。
+        /// 确认时回调拿到的仍是传入列表里的卡对象（单机用于取真实引用；联机只取颜色）。
+        /// </summary>
+        public static ClaimPanel Open(
+            Canvas canvas,
+            Route route,
+            IReadOnlyList<TrainCarCard> hand,
+            Action<List<TrainCarCard>> onConfirm,
+            Action onCancel)
+        {
+            if (canvas == null || route == null)
             {
                 return null;
             }
@@ -55,24 +74,22 @@ namespace TicketToRide.Presentation
             go.transform.SetParent(canvas.transform, false);
 
             var panel = go.AddComponent<ClaimPanel>();
-            panel.Build(canvas, route, player, onConfirm, onCancel);
+            panel.Build(route, hand, onConfirm, onCancel);
             return panel;
         }
 
         private void Build(
-            Canvas canvas,
             Route route,
-            Player player,
+            IReadOnlyList<TrainCarCard> hand,
             Action<List<TrainCarCard>> onConfirm,
             Action onCancel)
         {
             _route = route;
-            _player = player;
+            _hand = hand == null ? new List<TrainCarCard>() : hand.Where(c => c != null).ToList();
             _onConfirm = onConfirm;
             _onCancel = onCancel;
 
-            _availableByColor = player.Hand.GetCards()
-                .Where(c => c != null)
+            _availableByColor = _hand
                 .GroupBy(c => c.Color)
                 .ToDictionary(g => g.Key, g => g.Count());
 
@@ -433,12 +450,11 @@ namespace TicketToRide.Presentation
         private List<TrainCarCard> BuildSelectedCards()
         {
             var result = new List<TrainCarCard>();
-            var hand = _player.Hand.GetCards().ToList();
 
             foreach (var pair in _selectedByColor)
             {
                 int need = pair.Value;
-                var matching = hand.Where(c => c != null && c.Color == pair.Key).Take(need).ToList();
+                var matching = _hand.Where(c => c.Color == pair.Key).Take(need).ToList();
 
                 if (matching.Count < need)
                 {

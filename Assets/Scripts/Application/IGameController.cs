@@ -10,6 +10,9 @@ namespace TicketToRide.Application
     /// </summary>
     public interface IGameController
     {
+        /// <summary>表现层唯一的数据读取面（单机读权威状态，客户端读主机快照）。</summary>
+        IMatchView View { get; }
+
         /// <summary>状态发生变化（动作完成、换人、结束）时触发，供表现层刷新。</summary>
         event Action Changed;
 

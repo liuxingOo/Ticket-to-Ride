@@ -24,16 +24,20 @@ namespace TicketToRide.Presentation
         private readonly List<DestinationTicketCardView> _cards = new List<DestinationTicketCardView>();
         private DestinationTicketCardView _selected;
 
-        public void Refresh(Player player)
+        /// <summary>
+        /// 用任务卡列表重建手牌区。只接受卡列表，不碰 Player——
+        /// 客户端只持有本人的任务卡（由 IMatchView.MyTickets 按 Id 还原卡面）。
+        /// </summary>
+        public void Refresh(IReadOnlyList<DestinationTicket> tickets)
         {
             ClearCards();
 
-            if (player == null)
+            if (tickets == null)
             {
                 return;
             }
 
-            foreach (var ticket in player.DestinationTickets)
+            foreach (var ticket in tickets)
             {
                 if (ticket == null)
                 {

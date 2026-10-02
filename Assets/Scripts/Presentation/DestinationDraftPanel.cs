@@ -75,27 +75,50 @@ namespace TicketToRide.Presentation
             blockerRect.offsetMax = Vector2.zero;
             var blockerImage = blocker.GetComponent<Image>();
             // 遮罩调淡：挑选任务卡时要能看清地图上点亮的两个城市蓝标。
-            blockerImage.color = new Color(0f, 0f, 0f, 0.15f);
+            blockerImage.color = new Color(0f, 0f, 0f, 0.08f);
             blockerImage.raycastTarget = true;
 
-            // 中央面板。
+            // 中央面板。半透明：能透出下面的地图，方便对照城市位置。
             var panelRect = new GameObject("Panel", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
             panelRect.SetParent(root, false);
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
             panelRect.anchoredPosition = Vector2.zero;
-            panelRect.sizeDelta = new Vector2(CardWidth * 3f + CardSpacing * 2f + 60f, 520f);
-            panelRect.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 0.96f);
+            panelRect.sizeDelta = new Vector2(CardWidth * 3f + CardSpacing * 2f + 40f, 500f);
+            panelRect.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 0.72f);
 
-            var titleLabel = ClaimPanel.CreateLabelPublic(panelRect, "Title", 24, TextAnchor.MiddleCenter);
+            // 顶部拖动条：只有这一条能拖面板，不和卡片的点击抢事件。
+            var titleBar = new GameObject("TitleBar", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            titleBar.SetParent(panelRect, false);
+            titleBar.anchorMin = new Vector2(0f, 1f);
+            titleBar.anchorMax = new Vector2(1f, 1f);
+            titleBar.pivot = new Vector2(0.5f, 1f);
+            titleBar.anchoredPosition = Vector2.zero;
+            titleBar.sizeDelta = new Vector2(0f, 56f);
+            var titleBarImage = titleBar.GetComponent<Image>();
+            titleBarImage.color = new Color(1f, 1f, 1f, 0.06f); // 很淡的一条，提示这里可以按住拖
+            titleBarImage.raycastTarget = true;
+            titleBar.gameObject.AddComponent<UiDragHandle>().Target = panelRect;
+
+            var titleLabel = ClaimPanel.CreateLabelPublic(titleBar, "Title", 22, TextAnchor.MiddleCenter);
             titleLabel.text = _title;
             titleLabel.color = Color.white;
-            titleLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
-            titleLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
-            titleLabel.rectTransform.pivot = new Vector2(0.5f, 1f);
-            titleLabel.rectTransform.anchoredPosition = new Vector2(0f, -18f);
-            titleLabel.rectTransform.sizeDelta = new Vector2(panelRect.sizeDelta.x - 40f, 32f);
+            titleLabel.rectTransform.anchorMin = Vector2.zero;
+            titleLabel.rectTransform.anchorMax = Vector2.one;
+            titleLabel.rectTransform.offsetMin = new Vector2(12f, 0f);
+            titleLabel.rectTransform.offsetMax = new Vector2(-12f, 0f);
+            titleLabel.raycastTarget = false; // 点击/拖动都交给下面的拖动条处理。
+
+            var dragHint = ClaimPanel.CreateLabelPublic(panelRect, "DragHint", 13, TextAnchor.MiddleCenter);
+            dragHint.text = "按住顶部标题栏可拖动本面板";
+            dragHint.color = new Color(1f, 1f, 1f, 0.45f);
+            dragHint.rectTransform.anchorMin = new Vector2(0f, 1f);
+            dragHint.rectTransform.anchorMax = new Vector2(1f, 1f);
+            dragHint.rectTransform.pivot = new Vector2(0.5f, 1f);
+            dragHint.rectTransform.anchoredPosition = new Vector2(0f, -58f);
+            dragHint.rectTransform.sizeDelta = new Vector2(panelRect.sizeDelta.x - 40f, 18f);
+            dragHint.raycastTarget = false;
 
             // 三张任务卡横排。
             var library = DestinationTicketSpriteLibrary.Global;

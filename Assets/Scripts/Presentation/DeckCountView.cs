@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using TicketToRide.Domain;
 
 namespace TicketToRide.Presentation
 {
@@ -21,16 +20,6 @@ namespace TicketToRide.Presentation
         [SerializeField] private Sprite level80Sprite;
         [SerializeField] private Sprite level90Sprite;
         [SerializeField] private Sprite level100Sprite;
-
-        public void Refresh(TrainCarDeck deck)
-        {
-            if (deck == null)
-            {
-                throw new ArgumentNullException(nameof(deck));
-            }
-
-            Refresh(deck.Count);
-        }
 
         public void Refresh(int remainingCount)
         {

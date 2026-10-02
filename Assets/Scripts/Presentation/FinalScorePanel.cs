@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using TicketToRide.Application.Net.Protocol;
 using TicketToRide.Domain;
 
 namespace TicketToRide.Presentation
@@ -31,10 +33,17 @@ namespace TicketToRide.Presentation
 
         private static readonly float[] ColumnCenters = BuildColumnCenters();
 
-        /// <summary>打开结算面板。返回 null 表示创建失败。</summary>
-        public static FinalScorePanel Open(Canvas canvas, FinalScoreResult result)
+        /// <summary>
+        /// 打开结算面板。数据是协议行：单机由本端算好、联机由主机随快照下发，
+        /// 表现层不关心来源，只负责画表。返回 null 表示创建失败。
+        /// onRestart 不为 null 时额外显示「再来一局」按钮（点击后回到菜单重新开局）。
+        /// </summary>
+        public static FinalScorePanel Open(
+            Canvas canvas,
+            IReadOnlyList<FinalScoreEntry> entries,
+            System.Action onRestart = null)
         {
-            if (canvas == null || result == null)
+            if (canvas == null || entries == null || entries.Count == 0)
             {
                 return null;
             }
@@ -43,11 +52,11 @@ namespace TicketToRide.Presentation
             go.transform.SetParent(canvas.transform, false);
 
             var panel = go.AddComponent<FinalScorePanel>();
-            panel.Build(result);
+            panel.Build(entries, onRestart);
             return panel;
         }
 
-        private void Build(FinalScoreResult result)
+        private void Build(IReadOnlyList<FinalScoreEntry> entries, System.Action onRestart)
         {
             var root = (RectTransform)transform;
             root.anchorMin = Vector2.zero;
@@ -67,8 +76,8 @@ namespace TicketToRide.Presentation
             blockerImage.color = new Color(0f, 0f, 0f, 0.55f);
             blockerImage.raycastTarget = true;
 
-            int rowCount = result.Rankings.Count;
-            bool hasTie = result.Rankings.GroupBy(entry => entry.Total).Any(group => group.Count() > 1);
+            int rowCount = entries.Count;
+            bool hasTie = entries.GroupBy(entry => entry.Total).Any(group => group.Count() > 1);
             float footnoteHeight = hasTie ? 26f : 0f;
 
             float tableWidth = Columns.Sum(column => column.Width);
@@ -105,7 +114,7 @@ namespace TicketToRide.Presentation
             Place(title.rectTransform, 0f, titleTop, panelWidth - PanelPadding * 2f, 36f);
 
             var winnerLabel = ClaimPanel.CreateLabelPublic(panelRect, "Winner", 19, TextAnchor.MiddleCenter);
-            winnerLabel.text = BuildWinnerText(result);
+            winnerLabel.text = BuildWinnerText(entries);
             winnerLabel.color = WinnerColor;
             Place(winnerLabel.rectTransform, 0f, winnerTop, panelWidth - PanelPadding * 2f, 30f);
 
@@ -119,7 +128,7 @@ namespace TicketToRide.Presentation
 
             for (int i = 0; i < rowCount; i++)
             {
-                BuildRow(panelRect, result.Rankings[i], rowsTop - i * RowHeight);
+                BuildRow(panelRect, entries[i], rowsTop - i * RowHeight);
             }
 
             if (hasTie)
@@ -133,15 +142,45 @@ namespace TicketToRide.Presentation
             var closeButton = ClaimPanel.CreateButtonPublic(panelRect, "关闭", new Color(0.3f, 0.3f, 0.32f, 1f));
             closeButton.onClick.AddListener(() => Destroy(gameObject));
 
-            var closeRect = (RectTransform)closeButton.transform;
-            closeRect.anchorMin = new Vector2(0.5f, 0f);
-            closeRect.anchorMax = new Vector2(0.5f, 0f);
-            closeRect.pivot = new Vector2(0.5f, 0f);
-            closeRect.anchoredPosition = new Vector2(0f, PanelPadding);
-            closeRect.sizeDelta = new Vector2(140f, 42f);
+            const float closeWidth = 140f;
+            const float restartWidth = 180f;
+            const float buttonGap = 16f;
+
+            if (onRestart == null)
+            {
+                PlaceBottomButton((RectTransform)closeButton.transform, 0f, closeWidth, PanelPadding);
+                return;
+            }
+
+            // 两个按钮并排居中：先算整排宽度，再左右各放一个。
+            float rowWidth = closeWidth + buttonGap + restartWidth;
+            float rowLeft = -rowWidth * 0.5f;
+            PlaceBottomButton((RectTransform)closeButton.transform, rowLeft + closeWidth * 0.5f, closeWidth, PanelPadding);
+
+            var restartButton = ClaimPanel.CreateButtonPublic(panelRect, "再来一局", new Color(0.25f, 0.6f, 0.35f, 1f));
+            restartButton.onClick.AddListener(() =>
+            {
+                Destroy(gameObject);
+                onRestart();
+            });
+            PlaceBottomButton(
+                (RectTransform)restartButton.transform,
+                rowLeft + closeWidth + buttonGap + restartWidth * 0.5f,
+                restartWidth,
+                PanelPadding);
         }
 
-        private static void BuildRow(Transform parent, PlayerFinalScore entry, float top)
+        /// <summary>底部按钮：以面板底边为基准居中摆放。</summary>
+        private static void PlaceBottomButton(RectTransform rect, float centerX, float width, float bottomOffset)
+        {
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(centerX, bottomOffset);
+            rect.sizeDelta = new Vector2(width, 42f);
+        }
+
+        private static void BuildRow(Transform parent, FinalScoreEntry entry, float top)
         {
             bool isWinner = entry.Rank == 1;
             var textColor = isWinner ? WinnerColor : NormalColor;
@@ -150,7 +189,7 @@ namespace TicketToRide.Presentation
             var values = new[]
             {
                 entry.Rank.ToString(),
-                $"{(isWinner ? "★ " : string.Empty)}{entry.Player.Name}（{PlayerColorSelectPanel.GetColorName(entry.Player.Color)}）",
+                $"{(isWinner ? "★ " : string.Empty)}{entry.PlayerName}（{PlayerColorSelectPanel.GetColorName(entry.Color)}）",
                 entry.RouteScore.ToString(),
                 $"{FormatSigned(entry.TicketScore)}（完成 {entry.CompletedTickets}/{entry.TotalTickets}）",
                 $"{entry.LongestRouteLength} 节{(entry.HasLongestRoute ? $" +{entry.LongestRouteBonus}" : string.Empty)}",
@@ -159,19 +198,26 @@ namespace TicketToRide.Presentation
 
             for (int i = 0; i < Columns.Length; i++)
             {
-                var label = ClaimPanel.CreateLabelPublic(parent, $"Row_{entry.Player.Id}_{Columns[i].Title}", 16, Columns[i].Anchor);
+                var label = ClaimPanel.CreateLabelPublic(parent, $"Row_{entry.PlayerId}_{Columns[i].Title}", 16, Columns[i].Anchor);
                 label.text = values[i];
-                label.color = i == 1 ? (isWinner ? WinnerColor : PlayerColorSelectPanel.GetColorValue(entry.Player.Color)) : textColor;
+                label.color = i == 1 ? (isWinner ? WinnerColor : PlayerColorSelectPanel.GetColorValue(entry.Color)) : textColor;
                 Place(label.rectTransform, ColumnCenters[i], top, Columns[i].Width, RowHeight);
             }
         }
 
-        private static string BuildWinnerText(FinalScoreResult result)
+        private static string BuildWinnerText(IReadOnlyList<FinalScoreEntry> entries)
         {
-            var names = string.Join("、", result.Winners.Select(winner => winner.Player.Name));
-            int score = result.Winners[0].Total;
+            // 名次为 1 的就是获胜者，并列获胜时会有多行。
+            var winners = entries.Where(entry => entry.Rank == 1).ToList();
+            if (winners.Count == 0)
+            {
+                return string.Empty;
+            }
 
-            return result.IsSharedVictory
+            var names = string.Join("、", winners.Select(winner => winner.PlayerName));
+            int score = winners[0].Total;
+
+            return winners.Count > 1
                 ? $"并列获胜：{names}（各 {score} 分）"
                 : $"获胜：{names}（{score} 分）";
         }

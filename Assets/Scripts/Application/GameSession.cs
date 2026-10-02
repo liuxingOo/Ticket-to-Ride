@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TicketToRide.Application.Net;
 using TicketToRide.Domain;
 using TicketToRide.Domain.Services;
 
@@ -10,6 +11,9 @@ namespace TicketToRide.Application
         public GameState GameState { get; }
         public TurnManager TurnManager { get; }
         public RouteRuleService RuleService { get; }
+
+        /// <summary>RouteId → Route 查表，由表现层建图时登记；联机权威端按 Id 还原路线时使用。</summary>
+        public RouteRegistry RouteRegistry { get; } = new RouteRegistry();
 
         public GameSession(IEnumerable<Player> players, TrainCarDeck trainCarDeck, TrainCarMarket trainCarMarket = null, DestinationTicketDeck destinationTicketDeck = null)
         {
@@ -30,7 +34,11 @@ namespace TicketToRide.Application
         /// 按人数创建一局游戏。默认列车颜色按官方行动顺序发放（红→黄→蓝→绿→紫），
         /// 随后由开局选色面板逐个覆盖；所有玩家选完后 GameState.RebuildTurnOrderByColor 会重排行动顺序。
         /// </summary>
-        public static GameSession CreateSession(int playerCount)
+        /// <param name="firstPlayerName">
+        /// 第一位玩家（本机玩家）的自定义昵称，空则用默认名。
+        /// 其余玩家保持默认名：联机客户端的昵称由主机按连接绑定后在快照里覆盖显示。
+        /// </param>
+        public static GameSession CreateSession(int playerCount, string firstPlayerName = null)
         {
             if (playerCount < 1 || playerCount > GameState.TurnOrderColors.Length)
             {
@@ -48,7 +56,11 @@ namespace TicketToRide.Application
             var players = new List<Player>();
             for (int i = 0; i < playerCount; i++)
             {
-                players.Add(new Player($"player_{i + 1}", DefaultPlayerNames[i], GameState.TurnOrderColors[i]));
+                var name = i == 0 && !string.IsNullOrWhiteSpace(firstPlayerName)
+                    ? firstPlayerName.Trim()
+                    : DefaultPlayerNames[i];
+
+                players.Add(new Player($"player_{i + 1}", name, GameState.TurnOrderColors[i]));
             }
 
             return new GameSession(players, deck, market, destinationTicketDeck);

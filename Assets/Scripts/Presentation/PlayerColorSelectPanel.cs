@@ -38,7 +38,25 @@ namespace TicketToRide.Presentation
             ISet<PlayerTrainColor> takenColors,
             Action<PlayerTrainColor> onSelected)
         {
-            if (canvas == null || player == null)
+            if (player == null)
+            {
+                return null;
+            }
+
+            return Open(canvas, player.Name, player.Id, takenColors, onSelected);
+        }
+
+        /// <summary>
+        /// 联机重载：客户端没有领域 Player 对象，只按快照里的名字 / Id 打开面板。
+        /// </summary>
+        public static PlayerColorSelectPanel Open(
+            Canvas canvas,
+            string playerName,
+            string playerId,
+            ISet<PlayerTrainColor> takenColors,
+            Action<PlayerTrainColor> onSelected)
+        {
+            if (canvas == null)
             {
                 return null;
             }
@@ -47,11 +65,11 @@ namespace TicketToRide.Presentation
             go.transform.SetParent(canvas.transform, false);
 
             var panel = go.AddComponent<PlayerColorSelectPanel>();
-            panel.Build(player, takenColors ?? new HashSet<PlayerTrainColor>(), onSelected);
+            panel.Build(playerName, playerId, takenColors ?? new HashSet<PlayerTrainColor>(), onSelected);
             return panel;
         }
 
-        private void Build(Player player, ISet<PlayerTrainColor> takenColors, Action<PlayerTrainColor> onSelected)
+        private void Build(string playerName, string playerId, ISet<PlayerTrainColor> takenColors, Action<PlayerTrainColor> onSelected)
         {
             _onSelected = onSelected;
 
@@ -86,7 +104,7 @@ namespace TicketToRide.Presentation
             panelRect.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 0.96f);
 
             var titleLabel = ClaimPanel.CreateLabelPublic(panelRect, "Title", 24, TextAnchor.MiddleCenter);
-            titleLabel.text = $"{player.Name}（{player.Id}）选择列车颜色";
+            titleLabel.text = $"{playerName}（{playerId}）选择列车颜色";
             titleLabel.color = Color.white;
             titleLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
             titleLabel.rectTransform.anchorMax = new Vector2(1f, 1f);

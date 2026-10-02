@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using TicketToRide.Application.Net;
 using TicketToRide.Application.Net.Protocol;
 using TicketToRide.Domain;
 
@@ -16,6 +17,7 @@ namespace TicketToRide.Application
         public const float TurnAdvanceDelay = 1f;
 
         private readonly GameSession _session;
+        private readonly SessionMatchView _view;
 
         /// <summary>换人倒计时；小于 0 表示当前没有待推进的回合。</summary>
         private float _advanceTimer = -1f;
@@ -23,7 +25,10 @@ namespace TicketToRide.Application
         public LocalHotseatController(GameSession session)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
+            _view = new SessionMatchView(_session);
         }
+
+        public IMatchView View => _view;
 
         public event Action Changed;
 
@@ -100,8 +105,20 @@ namespace TicketToRide.Application
                     Debug.Log($"[LocalHotseatController] {_session.GameState.CurrentPlayer.Name} 抽到 {card}。");
                     break;
 
+                case CommandKind.TakeMarketCard:
+                    var visible = _session.GameState.TrainCarMarket.VisibleCards;
+                    if (command.MarketSlot < 0 || command.MarketSlot >= visible.Count)
+                    {
+                        Debug.LogWarning($"[LocalHotseatController] 市场槽位 {command.MarketSlot} 越界，忽略。");
+                        break;
+                    }
+
+                    // 只信槽位、不信颜色：这个位置上摆的是哪张牌，只有权威端说了算。
+                    _session.TurnManager.TakeOneMarketCard(visible[command.MarketSlot]);
+                    break;
+
                 default:
-                    // 其余动作（市场取牌 / 认领路线 / 任务卡）待后续步骤接入命令模型。
+                    // 其余动作（认领路线 / 任务卡）待后续步骤接入命令模型。
                     Debug.LogWarning($"[LocalHotseatController] 暂未接入的命令类型：{command.Kind}。");
                     break;
             }

@@ -12,11 +12,15 @@ namespace TicketToRide.Presentation
         [SerializeField] private TrainCarCardSpriteLibrary spriteLibrary;
         [SerializeField] private Vector2 cardSpacing = new Vector2(110f, 0f);
 
-        public void Refresh(Player player)
+        /// <summary>
+        /// 用手牌里的车厢卡重建手牌区。只接受卡列表，不碰 Player——
+        /// 联机时客户端拿到的也只是本人手牌（由 IMatchView.MyHand 提供），看不到别人的牌。
+        /// </summary>
+        public void Refresh(IReadOnlyList<TrainCarCard> cards)
         {
-            if (player == null)
+            if (cards == null)
             {
-                Debug.LogWarning("[PlayerHandView] 不能刷新空玩家手牌。");
+                Debug.LogWarning("[PlayerHandView] 不能刷新空手牌列表。");
                 return;
             }
 
@@ -31,7 +35,7 @@ namespace TicketToRide.Presentation
                 Destroy(child.gameObject);
             }
 
-            var groupedCards = player.Hand.GetCards()
+            var groupedCards = cards
                 .Where(card => card != null)
                 .GroupBy(card => card.Color)
                 .OrderBy(group => (int)group.Key);

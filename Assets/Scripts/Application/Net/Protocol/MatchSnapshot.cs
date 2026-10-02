@@ -28,10 +28,29 @@ namespace TicketToRide.Application.Net.Protocol
         /// <summary>单调递增的版本号，客户端丢弃比已应用版本更小的包。</summary>
         public int Version;
 
+        /// <summary>
+        /// 这份快照是发给谁的（本人玩家 Id）。快照本就按人分包，所以不算泄露——
+        /// 客户端靠它知道「我是谁」，从而判断开局阶段机现在是不是轮到自己操作。
+        /// </summary>
+        public string ViewerPlayerId;
+
         public MatchPhase Phase;
 
         /// <summary>开局流程中正在操作的人（选色 / 挑任务卡）。</summary>
         public string ActingPlayerId;
+
+        /// <summary>
+        /// 正在挑选任务卡的人（对局中抽 3 选 1 的中间态持有者）。
+        /// 开局阶段的挑任务卡由 Phase + ActingPlayerId 表达，这里通常为空。
+        /// 客户端靠它显示「谁在做什么」，不涉及牌面内容。
+        /// </summary>
+        public string DraftingPlayerId;
+
+        /// <summary>
+        /// 「该他操作、但还没有客户端接入」的玩家 Id，没有则为空。
+        /// 只用于界面提示：让主机和已连上的客户端都知道到底卡在等谁，而不是看起来像死机。
+        /// </summary>
+        public string WaitingPlayerId;
 
         public TurnActionPhase TurnPhase;
 
@@ -52,6 +71,9 @@ namespace TicketToRide.Application.Net.Protocol
         public int TicketDeckCount;
 
         public RouteState[] Routes;
+
+        /// <summary>终局结算表；未结束时为空数组。</summary>
+        public FinalScoreEntry[] FinalScores;
 
         // —— 仅发给本人的段 ——
 
